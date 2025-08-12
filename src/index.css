@@ -8,22 +8,22 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 248 250 252;
-    --foreground: 226 21% 14%;
+    --background: 15 23 42;
+    --foreground: 226 250 255;
 
-    --card: 255 255 255;
-    --card-foreground: 226 21% 14%;
+    --card: 30 41 59;
+    --card-foreground: 226 250 255;
 
-    --popover: 255 255 255;
-    --popover-foreground: 226 21% 14%;
+    --popover: 30 41 59;
+    --popover-foreground: 226 250 255;
 
     --primary: 217 91% 60%;
     --primary-foreground: 255 255 255;
 
-    --secondary: 241 245 249;
-    --secondary-foreground: 226 21% 14%;
+    --secondary: 51 65 85;
+    --secondary-foreground: 226 250 255;
 
-    --muted: 248 250 252;
+    --muted: 71 85 105;
     --muted-foreground: 148 163 184;
 
     --accent: 217 91% 60%;
@@ -32,8 +32,8 @@ All colors MUST be HSL.
     --destructive: 0 84% 60%;
     --destructive-foreground: 255 255 255;
 
-    --border: 226 232 240;
-    --input: 226 232 240;
+    --border: 71 85 105;
+    --input: 71 85 105;
     --ring: 217 91% 60%;
 
     /* Professional Invoice Colors */
