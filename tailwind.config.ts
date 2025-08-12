@@ -52,6 +52,12 @@ export default {
 					DEFAULT: 'hsl(var(--card))',
 					foreground: 'hsl(var(--card-foreground))'
 				},
+				'invoice-blue': 'hsl(var(--invoice-blue))',
+				'invoice-blue-light': 'hsl(var(--invoice-blue-light))',
+				'invoice-green': 'hsl(var(--invoice-green))',
+				'invoice-green-light': 'hsl(var(--invoice-green-light))',
+				'invoice-purple': 'hsl(var(--invoice-purple))',
+				'invoice-purple-light': 'hsl(var(--invoice-purple-light))',
 				sidebar: {
 					DEFAULT: 'hsl(var(--sidebar-background))',
 					foreground: 'hsl(var(--sidebar-foreground))',
