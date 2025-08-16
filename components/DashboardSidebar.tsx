@@ -1,7 +1,7 @@
 'use client'
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { FileText, Users, History, BarChart3, Settings, HelpCircle, User } from "lucide-react";
+import { FileText, Users, History, BarChart3, Settings, HelpCircle, User, Plus } from "lucide-react";
 
 interface SidebarItem {
   id: string;
@@ -18,14 +18,14 @@ interface DashboardSidebarProps {
 export const DashboardSidebar = ({ activeTab, onTabChange }: DashboardSidebarProps) => {
   const mainItems: SidebarItem[] = [
     {
-      id: "create",
-      label: "Create Invoice",
+      id: "history",
+      label: "Invoices",
       icon: <FileText className="w-5 h-5" />,
     },
     {
-      id: "history",
-      label: "Invoice History",
-      icon: <History className="w-5 h-5" />,
+      id: "create",
+      label: "Create Invoice",
+      icon: <Plus className="w-5 h-5" />,
     },
     {
       id: "clients",

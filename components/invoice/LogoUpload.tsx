@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Upload, X, Image as ImageIcon } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { showSuccess, showError } from "@/hooks/use-toast";
 import { uploadLogo, deleteLogo, getLogoPathFromUrl, isStorageUrl } from "@/lib/logo-service";
 
 interface LogoUploadProps {
@@ -15,26 +15,24 @@ export const LogoUpload = ({ logo, onLogoChange }: LogoUploadProps) => {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
+  // Using enhanced toast helpers
 
   const handleFileSelect = async (file: File) => {
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      toast({
-        title: "Invalid File Type",
-        description: "Please select an image file (PNG, JPG, GIF, etc.)",
-        variant: "destructive",
-      });
+      showError(
+        "Invalid File Type",
+        "Please select an image file (PNG, JPG, GIF, etc.)"
+      );
       return;
     }
 
     // Validate file size (max 2MB for better performance)
     if (file.size > 2 * 1024 * 1024) {
-      toast({
-        title: "File Too Large",
-        description: "Please select an image smaller than 2MB",
-        variant: "destructive",
-      });
+      showError(
+        "File Too Large",
+        "Please select an image smaller than 2MB"
+      );
       return;
     }
 
@@ -54,24 +52,22 @@ export const LogoUpload = ({ logo, onLogoChange }: LogoUploadProps) => {
       
       if (result) {
         onLogoChange(result.url);
-        toast({
-          title: "Logo Uploaded Successfully! 🎉",
-          description: "Your logo has been added to the invoice",
-        });
+        showSuccess(
+          "Logo Uploaded Successfully!",
+          "Your logo has been added to the invoice"
+        );
       } else {
-        toast({
-          title: "Upload Failed",
-          description: "Failed to upload logo. Please try again.",
-          variant: "destructive",
-        });
+        showError(
+          "Upload Failed",
+          "Failed to upload logo. Please try again."
+        );
       }
     } catch (error) {
       console.error('Error uploading logo:', error);
-      toast({
-        title: "Upload Failed",
-        description: "Failed to upload logo. Please try again.",
-        variant: "destructive",
-      });
+      showError(
+        "Upload Failed",
+        "Failed to upload logo. Please try again."
+      );
     } finally {
       setIsUploading(false);
     }
@@ -120,10 +116,10 @@ export const LogoUpload = ({ logo, onLogoChange }: LogoUploadProps) => {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      toast({
-        title: "Logo Removed",
-        description: "Logo has been removed from the invoice",
-      });
+      showSuccess(
+        "Logo Removed",
+        "Logo has been removed from the invoice"
+      );
     } catch (error) {
       console.error('Error removing logo:', error);
       // Still remove from UI even if storage deletion fails
@@ -131,10 +127,10 @@ export const LogoUpload = ({ logo, onLogoChange }: LogoUploadProps) => {
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
-      toast({
-        title: "Logo Removed",
-        description: "Logo has been removed from the invoice",
-      });
+      showSuccess(
+        "Logo Removed",
+        "Logo has been removed from the invoice"
+      );
     }
   };
 

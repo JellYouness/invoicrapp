@@ -11,7 +11,7 @@ import { FileText, ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { showSuccess, showError } from "@/hooks/use-toast";
 import type { User, Session } from '@supabase/supabase-js';
 
 const Auth = () => {
@@ -22,7 +22,7 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const router = useRouter();
-  const { toast } = useToast();
+  // Using enhanced toast helpers
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -67,23 +67,21 @@ const Auth = () => {
       });
 
       if (error) {
-        toast({
-          title: "Sign up failed",
-          description: error.message,
-          variant: "destructive",
-        });
+        showError(
+          "Sign up failed",
+          error.message
+        );
       } else if (data.user) {
-        toast({
-          title: "Success!",
-          description: "Please check your email to confirm your account.",
-        });
+        showSuccess(
+          "Success!",
+          "Please check your email to confirm your account."
+        );
       }
     } catch (error) {
-      toast({
-        title: "Sign up failed",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
+      showError(
+        "Sign up failed",
+        "An unexpected error occurred"
+      );
     } finally {
       setLoading(false);
     }
@@ -100,24 +98,22 @@ const Auth = () => {
       });
 
       if (error) {
-        toast({
-          title: "Sign in failed",
-          description: error.message,
-          variant: "destructive",
-        });
+        showError(
+          "Sign in failed",
+          error.message
+        );
       } else if (data.user) {
-        toast({
-          title: "Welcome back!",
-          description: "You have been successfully signed in.",
-        });
+        showSuccess(
+          "Welcome back!",
+          "You have been successfully signed in."
+        );
         router.push("/dashboard");
       }
     } catch (error) {
-      toast({
-        title: "Sign in failed",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
+      showError(
+        "Sign in failed",
+        "An unexpected error occurred"
+      );
     } finally {
       setLoading(false);
     }
@@ -135,20 +131,18 @@ const Auth = () => {
       });
 
       if (error) {
-        toast({
-          title: "Google sign in failed",
-          description: error.message,
-          variant: "destructive",
-        });
+        showError(
+          "Google sign in failed",
+          error.message
+        );
         setLoading(false);
       }
       // Note: Don't set loading to false here as the user will be redirected
     } catch (error) {
-      toast({
-        title: "Google sign in failed",
-        description: "An unexpected error occurred",
-        variant: "destructive",
-      });
+      showError(
+        "Google sign in failed",
+        "An unexpected error occurred"
+      );
       setLoading(false);
     }
   };

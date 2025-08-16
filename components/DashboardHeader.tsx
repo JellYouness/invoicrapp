@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { showSuccess, showError } from "@/hooks/use-toast";
 import type { User as SupabaseUser } from '@supabase/supabase-js';
 
 interface DashboardHeaderProps {
@@ -25,7 +25,7 @@ interface DashboardHeaderProps {
 export const DashboardHeader = ({ onNewInvoice, onTabChange }: DashboardHeaderProps) => {
   const [user, setUser] = useState<SupabaseUser | null>(null);
   const router = useRouter();
-  const { toast } = useToast();
+  // Using enhanced toast helpers
 
   useEffect(() => {
     // Get current user session
@@ -50,24 +50,22 @@ export const DashboardHeader = ({ onNewInvoice, onTabChange }: DashboardHeaderPr
     try {
       const { error } = await supabase.auth.signOut();
       if (error) {
-        toast({
-          title: "Error signing out",
-          description: error.message,
-          variant: "destructive"
-        });
+        showError(
+          "Error signing out",
+          error.message
+        );
       } else {
-        toast({
-          title: "Signed out successfully",
-          description: "You have been signed out of your account."
-        });
+        showSuccess(
+          "Signed out successfully",
+          "You have been signed out of your account."
+        );
         router.push("/");
       }
     } catch (error) {
-      toast({
-        title: "An error occurred",
-        description: "Please try again later.",
-        variant: "destructive"
-      });
+      showError(
+        "An error occurred",
+        "Please try again later."
+      );
     }
   };
 

@@ -13,7 +13,7 @@ import { DashboardSidebar } from "./DashboardSidebar";
 import type { SavedInvoice } from "@/lib/invoice-service";
 
 export const Dashboard = () => {
-  const [activeTab, setActiveTab] = useState("create");
+  const [activeTab, setActiveTab] = useState("history");
   const [editingInvoice, setEditingInvoice] = useState<SavedInvoice | null>(
     null
   );

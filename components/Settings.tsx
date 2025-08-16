@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/integrations/supabase/client";
 import { SettingsService } from "@/lib/settings-service";
-import { useToast } from "@/hooks/use-toast";
+import { showSuccess, showError } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,8 +38,12 @@ import {
   RefreshCw,
   Trash2,
   AlertTriangle,
+  Plus,
+  Type,
+  Calendar,
+  Minus,
 } from "lucide-react";
-import type { SettingsFormData } from "@/types/settings";
+import type { SettingsFormData, CustomField } from "@/types/settings";
 import {
   DEFAULT_SETTINGS,
   CURRENCY_OPTIONS,
@@ -54,7 +58,7 @@ export const Settings = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const { toast } = useToast();
+  // Using enhanced toast helpers
   const router = useRouter();
 
   useEffect(() => {
@@ -75,18 +79,17 @@ export const Settings = () => {
         setSettings(userSettings);
       } catch (error) {
         console.error("Error loading settings:", error);
-        toast({
-          title: "Error loading settings",
-          description: "Failed to load your settings. Please try again.",
-          variant: "destructive",
-        });
+        showError(
+          "Error loading settings",
+          "Failed to load your settings. Please try again."
+        );
       } finally {
         setLoading(false);
       }
     };
 
     initializeSettings();
-  }, [router, toast]);
+  }, [router]);
 
   const handleSave = async () => {
     if (!user) return;
@@ -94,17 +97,16 @@ export const Settings = () => {
     setSaving(true);
     try {
       await SettingsService.saveUserSettings(user.id, settings);
-      toast({
-        title: "Settings saved",
-        description: "Your settings have been updated successfully.",
-      });
+      showSuccess(
+        "Settings saved",
+        "Your settings have been updated successfully."
+      );
     } catch (error) {
       console.error("Error saving settings:", error);
-      toast({
-        title: "Error saving settings",
-        description: "Failed to save your settings. Please try again.",
-        variant: "destructive",
-      });
+      showError(
+        "Error saving settings",
+        "Failed to save your settings. Please try again."
+      );
     } finally {
       setSaving(false);
     }
@@ -118,38 +120,35 @@ export const Settings = () => {
 
     // Validate file size (max 2MB)
     if (file.size > 2 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please select an image smaller than 2MB.",
-        variant: "destructive",
-      });
+      showError(
+        "File too large",
+        "Please select an image smaller than 2MB."
+      );
       return;
     }
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
-      toast({
-        title: "Invalid file type",
-        description: "Please select an image file.",
-        variant: "destructive",
-      });
+      showError(
+        "Invalid file type",
+        "Please select an image file."
+      );
       return;
     }
 
     try {
       const base64 = await SettingsService.uploadCompanyLogo(user.id, file);
       setSettings((prev) => ({ ...prev, company_logo: base64 }));
-      toast({
-        title: "Logo uploaded",
-        description: "Your company logo has been updated.",
-      });
+      showSuccess(
+        "Logo uploaded",
+        "Your company logo has been updated."
+      );
     } catch (error) {
       console.error("Error uploading logo:", error);
-      toast({
-        title: "Upload failed",
-        description: "Failed to upload logo. Please try again.",
-        variant: "destructive",
-      });
+      showError(
+        "Upload failed",
+        "Failed to upload logo. Please try again."
+      );
     }
   };
 
@@ -159,17 +158,60 @@ export const Settings = () => {
     try {
       await SettingsService.resetInvoiceCounter(user.id, 1);
       setSettings((prev) => ({ ...prev, invoice_counter: 1 }));
-      toast({
-        title: "Counter reset",
-        description: "Invoice counter has been reset to 1.",
-      });
+      showSuccess(
+        "Counter reset",
+        "Invoice counter has been reset to 1."
+      );
     } catch (error) {
       console.error("Error resetting counter:", error);
-      toast({
-        title: "Reset failed",
-        description: "Failed to reset invoice counter.",
-        variant: "destructive",
-      });
+      showError(
+        "Reset failed",
+        "Failed to reset invoice counter."
+      );
+    }
+  };
+
+  // Custom Fields Management
+  const addCustomField = () => {
+    const newField: CustomField = {
+      id: `field_${Date.now()}`,
+      label: "",
+      type: "text",
+      required: false,
+      defaultValue: "",
+    };
+    setSettings((prev) => ({
+      ...prev,
+      custom_fields: [...(prev.custom_fields || []), newField],
+    }));
+  };
+
+  const updateCustomField = (fieldId: string, updates: Partial<CustomField>) => {
+    setSettings((prev) => ({
+      ...prev,
+      custom_fields: (prev.custom_fields || []).map((field) =>
+        field.id === fieldId ? { ...field, ...updates } : field
+      ),
+    }));
+  };
+
+  const removeCustomField = (fieldId: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      custom_fields: (prev.custom_fields || []).filter((field) => field.id !== fieldId),
+    }));
+  };
+
+  const getFieldIcon = (type: string) => {
+    switch (type) {
+      case "text":
+        return <Type className="h-4 w-4" />;
+      case "number":
+        return <Hash className="h-4 w-4" />;
+      case "date":
+        return <Calendar className="h-4 w-4" />;
+      default:
+        return <Type className="h-4 w-4" />;
     }
   };
 
@@ -202,7 +244,7 @@ export const Settings = () => {
       </div>
 
       <Tabs defaultValue="company" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-6">
           <TabsTrigger value="company" className="gap-2">
             <Building2 className="h-4 w-4" />
             Company
@@ -222,6 +264,10 @@ export const Settings = () => {
           <TabsTrigger value="numbering" className="gap-2">
             <Hash className="h-4 w-4" />
             Numbering
+          </TabsTrigger>
+          <TabsTrigger value="custom-fields" className="gap-2">
+            <Plus className="h-4 w-4" />
+            Custom Fields
           </TabsTrigger>
         </TabsList>
 
@@ -730,6 +776,139 @@ export const Settings = () => {
                     )}
                 </Badge>
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Custom Fields */}
+        <TabsContent value="custom-fields" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Custom Fields</CardTitle>
+              <CardDescription>
+                Add custom fields to collect additional information on your invoices. These fields will appear on the left side of the totals section.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {!settings.custom_fields || settings.custom_fields.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Plus className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-sm">
+                    No custom fields configured. Add your first custom field to get started.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {settings.custom_fields && settings.custom_fields.map((field, index) => (
+                    <Card key={field.id} className="p-4">
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            {getFieldIcon(field.type)}
+                            <span className="font-medium">Field {index + 1}</span>
+                            <Badge variant="outline" className="text-xs">
+                              {field.type}
+                            </Badge>
+                            {field.required && (
+                              <Badge variant="destructive" className="text-xs">
+                                Required
+                              </Badge>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeCustomField(field.id)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Field Label</Label>
+                            <Input
+                              value={field.label}
+                              onChange={(e) =>
+                                updateCustomField(field.id, { label: e.target.value })
+                              }
+                              placeholder="Enter field label"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Field Type</Label>
+                            <Select
+                              value={field.type}
+                              onValueChange={(value: "text" | "number" | "date") =>
+                                updateCustomField(field.id, { type: value })
+                              }
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="text">Text</SelectItem>
+                                <SelectItem value="number">Number</SelectItem>
+                                <SelectItem value="date">Date</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                        </div>
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label>Default Value (Optional)</Label>
+                            <Input
+                              value={field.defaultValue}
+                              onChange={(e) =>
+                                updateCustomField(field.id, { defaultValue: e.target.value })
+                              }
+                              placeholder="Enter default value"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label>Required Field</Label>
+                            <div className="flex items-center space-x-2 pt-2">
+                              <Switch
+                                checked={field.required}
+                                onCheckedChange={(checked) =>
+                                  updateCustomField(field.id, { required: checked })
+                                }
+                              />
+                              <span className="text-sm text-muted-foreground">
+                                {field.required ? "Required" : "Optional"}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+              
+              <div className="flex justify-center pt-4">
+                <Button onClick={addCustomField} className="gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Custom Field
+                </Button>
+              </div>
+              
+              {settings.custom_fields && settings.custom_fields.length > 0 && (
+                <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+                  <div className="flex items-start gap-2">
+                    <AlertTriangle className="h-4 w-4 text-amber-500 mt-0.5 flex-shrink-0" />
+                    <div className="text-sm text-muted-foreground">
+                      <p className="font-medium mb-1">Custom Fields Preview:</p>
+                      <p>
+                        These fields will appear on the left side of the totals section in your invoice preview. 
+                        Required fields must be filled before proceeding to the final step.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>

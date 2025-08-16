@@ -34,7 +34,7 @@ import {
   updateInvoiceStatus,
   type SavedInvoice 
 } from "@/lib/invoice-service";
-import { useToast } from "@/hooks/use-toast";
+import { showSuccess, showError } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { InvoicePreview } from "@/components/invoice/InvoicePreview";
 import { getThemeMetadataSync } from "@/lib/invoice-themes";
@@ -68,7 +68,7 @@ export const InvoiceHistory = ({ onEditInvoice, onViewInvoice }: InvoiceHistoryP
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [previewInvoice, setPreviewInvoice] = useState<SavedInvoice | null>(null);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
-  const { toast } = useToast();
+  // Using enhanced toast helpers
 
   const loadInvoices = async () => {
     try {
@@ -77,11 +77,10 @@ export const InvoiceHistory = ({ onEditInvoice, onViewInvoice }: InvoiceHistoryP
       setInvoices(userInvoices);
     } catch (error) {
       console.error('Error loading invoices:', error);
-      toast({
-        title: "Error Loading Invoices",
-        description: "Failed to load your invoice history. Please try again.",
-        variant: "destructive",
-      });
+      showError(
+        "Error Loading Invoices",
+        "Failed to load your invoice history. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -93,24 +92,22 @@ export const InvoiceHistory = ({ onEditInvoice, onViewInvoice }: InvoiceHistoryP
       const success = await deleteInvoice(id);
       if (success) {
         setInvoices(prev => prev.filter(inv => inv.id !== id));
-        toast({
-          title: "Invoice Deleted",
-          description: "Invoice has been successfully deleted.",
-        });
+        showSuccess(
+          "Invoice Deleted",
+          "Invoice has been successfully deleted."
+        );
       } else {
-        toast({
-          title: "Error Deleting Invoice",
-          description: "Failed to delete the invoice. Please try again.",
-          variant: "destructive",
-        });
+        showError(
+          "Error Deleting Invoice",
+          "Failed to delete the invoice. Please try again."
+        );
       }
     } catch (error) {
       console.error('Error deleting invoice:', error);
-      toast({
-        title: "Error Deleting Invoice",
-        description: "Failed to delete the invoice. Please try again.",
-        variant: "destructive",
-      });
+      showError(
+        "Error Deleting Invoice",
+        "Failed to delete the invoice. Please try again."
+      );
     } finally {
       setDeletingId(null);
     }
@@ -125,24 +122,22 @@ export const InvoiceHistory = ({ onEditInvoice, onViewInvoice }: InvoiceHistoryP
             inv.id === id ? { ...inv, status: newStatus } : inv
           )
         );
-        toast({
-          title: "Status Updated",
-          description: `Invoice status updated to ${statusLabels[newStatus]}.`,
-        });
+        showSuccess(
+          "Status Updated",
+          `Invoice status updated to ${statusLabels[newStatus]}.`
+        );
       } else {
-        toast({
-          title: "Error Updating Status",
-          description: "Failed to update invoice status. Please try again.",
-          variant: "destructive",
-        });
+        showError(
+          "Error Updating Status",
+          "Failed to update invoice status. Please try again."
+        );
       }
     } catch (error) {
       console.error('Error updating status:', error);
-      toast({
-        title: "Error Updating Status",
-        description: "Failed to update invoice status. Please try again.",
-        variant: "destructive",
-      });
+      showError(
+        "Error Updating Status",
+        "Failed to update invoice status. Please try again."
+      );
     }
   };
 

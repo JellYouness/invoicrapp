@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { InvoiceData, InvoiceItem } from '@/types/invoice';
+import type { InvoiceData, InvoiceItem, CustomFieldValue } from '@/types/invoice';
 
 // Define the database row type for invoices
 type InvoiceRow = {
@@ -21,6 +21,7 @@ type InvoiceRow = {
   status: string;
   notes: string | null;
   logo_url: string | null;
+  custom_fields: any; // JSON type
   created_at: string;
   updated_at: string;
 };
@@ -44,6 +45,7 @@ export interface SavedInvoice {
   status: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
   notes?: string;
   logo_url?: string;
+  custom_fields?: CustomFieldValue[];
   created_at: string;
   updated_at: string;
 }
@@ -65,12 +67,13 @@ export interface CreateInvoiceData {
   status?: 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled';
   notes?: string;
   logo_url?: string;
+  custom_fields?: CustomFieldValue[];
 }
 
 // Calculate totals from invoice items
-export const calculateInvoiceTotals = (items: InvoiceItem[]) => {
+export const calculateInvoiceTotals = (items: InvoiceItem[], taxRate: number = 0) => {
   const subtotal = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-  const tax_amount = 0; // Can be enhanced later for tax calculations
+  const tax_amount = subtotal * (taxRate / 100);
   const total_amount = subtotal + tax_amount;
   
   return { subtotal, tax_amount, total_amount };
@@ -78,7 +81,7 @@ export const calculateInvoiceTotals = (items: InvoiceItem[]) => {
 
 // Convert InvoiceData to CreateInvoiceData format
 export const convertInvoiceDataToSaveFormat = (invoiceData: InvoiceData): CreateInvoiceData => {
-  const { subtotal, tax_amount, total_amount } = calculateInvoiceTotals(invoiceData.items);
+  const { subtotal, tax_amount, total_amount } = calculateInvoiceTotals(invoiceData.items, invoiceData.taxRate || 0);
   
   return {
     invoice_number: invoiceData.invoiceNumber,
@@ -95,6 +98,7 @@ export const convertInvoiceDataToSaveFormat = (invoiceData: InvoiceData): Create
     tax_amount,
     total_amount,
     status: 'draft',
+    custom_fields: invoiceData.customFields,
   };
 };
 

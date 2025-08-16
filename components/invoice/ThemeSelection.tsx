@@ -10,27 +10,34 @@ interface ThemeSelectionProps {
   onThemeSelect: (theme: InvoiceTheme) => void;
 }
 
-export const ThemeSelection = ({ selectedTheme, onThemeSelect }: ThemeSelectionProps) => {
+export const ThemeSelection = ({
+  selectedTheme,
+  onThemeSelect,
+}: ThemeSelectionProps) => {
   const [availableThemes, setAvailableThemes] = useState<any[]>([]);
-  const [loadedThemes, setLoadedThemes] = useState<{[key: string]: InvoiceTheme}>({});
+  const [loadedThemes, setLoadedThemes] = useState<{
+    [key: string]: InvoiceTheme;
+  }>({});
 
   useEffect(() => {
     // Load theme metadata for display
     const metadata = getAllThemeMetadataSync();
     setAvailableThemes(metadata);
-    
+
     // Preload all themes for previews
     const loadAllThemes = async () => {
-      const themes: {[key: string]: InvoiceTheme} = {};
+      const themes: { [key: string]: InvoiceTheme } = {};
       for (const meta of metadata) {
         try {
           const theme = await getThemeById(meta.id);
           if (theme) {
             themes[meta.id] = theme;
             // Inject theme CSS for previews
-            const existingStyle = document.getElementById(`theme-preview-${meta.id}`);
+            const existingStyle = document.getElementById(
+              `theme-preview-${meta.id}`
+            );
             if (!existingStyle && theme.customCSS) {
-              const styleElement = document.createElement('style');
+              const styleElement = document.createElement("style");
               styleElement.id = `theme-preview-${meta.id}`;
               styleElement.textContent = theme.customCSS;
               document.head.appendChild(styleElement);
@@ -42,7 +49,7 @@ export const ThemeSelection = ({ selectedTheme, onThemeSelect }: ThemeSelectionP
       }
       setLoadedThemes(themes);
     };
-    
+
     loadAllThemes();
   }, []);
 
@@ -53,7 +60,7 @@ export const ThemeSelection = ({ selectedTheme, onThemeSelect }: ThemeSelectionP
         onThemeSelect(theme);
       }
     } catch (error) {
-      console.error('Failed to load theme:', error);
+      console.error("Failed to load theme:", error);
     }
   };
 
@@ -67,14 +74,14 @@ export const ThemeSelection = ({ selectedTheme, onThemeSelect }: ThemeSelectionP
         {/* <p className="text-muted-foreground">Select a professional design for your invoices</p> */}
       </div>
 
-      <Card className="grid md:grid-cols-3 gap-6 h-[55vh] overflow-y-auto p-6 bg-muted/90 rounded-lg">
+      <Card className="grid md:grid-cols-4 gap-6 h-[55vh] overflow-y-auto p-6 bg-muted/90 rounded-lg">
         {availableThemes.map((theme) => (
           <Card
             key={theme.id}
-            className={`relative p-6 cursor-pointer transition-all duration-300 hover:shadow-lg ${
+            className={`relative p-3 cursor-pointer transition-all duration-300 hover:shadow-lg ${
               selectedTheme.id === theme.id
-                ? 'ring-2 ring-primary shadow-lg scale-105'
-                : 'hover:shadow-md'
+                ? "ring-2 ring-primary shadow-lg scale-105"
+                : "hover:shadow-md"
             }`}
             onClick={() => handleThemeSelect(theme.id)}
           >
@@ -83,35 +90,86 @@ export const ThemeSelection = ({ selectedTheme, onThemeSelect }: ThemeSelectionP
                 <Check className="w-4 h-4 text-primary-foreground" />
               </div>
             )}
-            
-            <div className="text-center space-y-4">
-              {/* Theme Preview Header */}
-              <div className={`theme-preview-header-${theme.id} w-16 h-16 mx-auto rounded-lg flex items-center justify-center`}>
-                <div className={`theme-preview-icon-${theme.id} w-8 h-8 rounded`} />
-              </div>
-              
-              {/* Theme Info */}
-              <div>
-                <h3 className="font-semibold text-lg">{theme.name}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{theme.description}</p>
-                <p className="text-xs text-muted-foreground">v{theme.version} by {theme.author}</p>
-              </div>
-              
-              {/* Theme Preview Bars */}
-              <div className="space-y-2">
-                <div className={`theme-preview-bar-${theme.id} h-3 rounded`} />
-                <div className="flex gap-1">
-                  <div className="h-2 bg-muted rounded flex-1" />
-                  <div className={`theme-preview-accent-${theme.id} h-2 rounded flex-1`} />
-                  <div className="h-2 bg-muted rounded flex-1" />
-                </div>
-              </div>
 
-              {/* Color Palette Preview */}
-              <div className="flex justify-center gap-1">
-                <div className={`theme-preview-color1-${theme.id} w-4 h-4 rounded-full border-2 border-white shadow-sm`} />
-                <div className={`theme-preview-color2-${theme.id} w-4 h-4 rounded-full border-2 border-white shadow-sm`} />
-                <div className={`theme-preview-color3-${theme.id} w-4 h-4 rounded-full border-2 border-white shadow-sm`} />
+            <div className="space-y-2">
+              {/* Theme Info */}
+              <div className="text-center">
+                <h3
+                  className="font-semibold text-md pb-1 border-b-2 w-36 mx-auto"
+                  style={{ borderColor: theme.preview?.primary || "#e5e7eb" }}
+                >
+                  {theme.name}
+                </h3>
+                {/* <p className="text-sm text-muted-foreground mt-1">{theme.description}</p> */}
+                {/* <p className="text-xs text-muted-foreground">v{theme.version} by {theme.author}</p> */}
+              </div>
+              {/* Mini Invoice Preview */}
+              <div className="h-44 w-32 bg-white rounded-lg shadow-sm border p-2 mx-auto relative">
+                {/* Invoice Header */}
+                <div
+                  className="flex justify-between items-start pb-2 border-b p-2 rounded-t-lg -m-2 mb-3"
+                  style={{
+                    backgroundColor: theme.preview?.primary || "#374151",
+                    borderColor: theme.preview?.secondary || "#e5e7eb",
+                  }}
+                >
+                  <div className="space-y-1">
+                    <div className="h-2 w-16 bg-white/90 rounded" />
+                    <div className="h-1 w-12 bg-white/60 rounded" />
+                  </div>
+                  <div className="w-5 h-5 bg-white/80 rounded" />
+                </div>
+
+                {/* Company & Client Info */}
+                <div className="grid grid-cols-2 justify-items-stretch gap-3 mb-4 px-1">
+                  <div className="space-y-1">
+                    <div className="h-1 w-12 bg-gray-300 rounded" />
+                    <div className="h-1 w-14 bg-gray-200 rounded" />
+                    <div className="h-1 w-10 bg-gray-200 rounded" />
+                  </div>
+                  <div className="space-y-1 justify-self-end flex flex-col items-end ">
+                    <div className="h-1 w-8 bg-gray-300 rounded" />
+                    <div className="h-1 w-10 bg-gray-200 rounded" />
+                    {/* <div className="h-2 w-14 bg-gray-200 rounded" /> */}
+                  </div>
+                </div>
+
+                {/* Invoice Items */}
+                <div className="space-y-1 mb-3 px-1">
+                  <div className="flex justify-between items-center">
+                    <div className="h-1.5 w-14 bg-gray-200 rounded" />
+                    <div className="h-1.5 w-10 bg-gray-300 rounded" />
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div className="h-1.5 w-10 bg-gray-200 rounded" />
+                    <div className="h-1.5 w-12 bg-gray-300 rounded" />
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div className="h-1.5 w-16 bg-gray-200 rounded" />
+                    <div className="h-1.5 w-8 bg-gray-300 rounded" />
+                  </div>
+                </div>
+
+                {/* Total */}
+                <div
+                  className="flex justify-between items-center pt-2 border-t absolute bottom-4 left-4 right-4"
+                  style={{ borderColor: theme.preview?.secondary || "#e5e7eb" }}
+                >
+                  <div
+                    className="h-3 w-10 rounded"
+                    style={
+                      {
+                        // backgroundColor: theme.preview?.accent || "#374151",
+                      }
+                    }
+                  />
+                  <div
+                    className="h-2 w-8 rounded"
+                    style={{
+                      backgroundColor: theme.preview?.accent || "#374151",
+                    }}
+                  />
+                </div>
               </div>
             </div>
           </Card>

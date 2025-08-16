@@ -8,13 +8,16 @@ import type {
 } from "@/components/ui/toast"
 
 const TOAST_LIMIT = 1
-const TOAST_REMOVE_DELAY = 1000000
+const TOAST_REMOVE_DELAY = 1000
+const TOAST_AUTO_DISMISS_DELAY = 4000
 
 type ToasterToast = ToastProps & {
   id: string
   title?: React.ReactNode
   description?: React.ReactNode
   action?: ToastActionElement
+  icon?: React.ReactNode
+  autoDismiss?: boolean
 }
 
 const actionTypes = {
@@ -141,7 +144,7 @@ function dispatch(action: Action) {
 
 type Toast = Omit<ToasterToast, "id">
 
-function toast({ ...props }: Toast) {
+function toast({ autoDismiss = true, ...props }: Toast & { autoDismiss?: boolean }) {
   const id = genId()
 
   const update = (props: ToasterToast) =>
@@ -157,11 +160,19 @@ function toast({ ...props }: Toast) {
       ...props,
       id,
       open: true,
+      autoDismiss,
       onOpenChange: (open) => {
         if (!open) dismiss()
       },
     },
   })
+
+  // Auto dismiss after delay if enabled
+  if (autoDismiss) {
+    setTimeout(() => {
+      dismiss()
+    }, TOAST_AUTO_DISMISS_DELAY)
+  }
 
   return {
     id: id,
@@ -190,4 +201,37 @@ function useToast() {
   }
 }
 
-export { useToast, toast }
+// Helper functions for common toast types
+const showSuccess = (title: string, description?: string) => {
+  return toast({
+    variant: "success",
+    title,
+    description,
+  })
+}
+
+const showError = (title: string, description?: string) => {
+  return toast({
+    variant: "destructive", 
+    title,
+    description,
+  })
+}
+
+const showWarning = (title: string, description?: string) => {
+  return toast({
+    variant: "warning",
+    title, 
+    description,
+  })
+}
+
+const showInfo = (title: string, description?: string) => {
+  return toast({
+    variant: "info",
+    title,
+    description,
+  })
+}
+
+export { useToast, toast, showSuccess, showError, showWarning, showInfo }

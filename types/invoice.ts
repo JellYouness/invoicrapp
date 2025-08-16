@@ -46,6 +46,11 @@ export interface InvoiceItem {
   price: number;
 }
 
+export interface CustomFieldValue {
+  fieldId: string;
+  value: string;
+}
+
 export interface InvoiceData {
   theme: InvoiceTheme;
   client: ClientInfo;
@@ -57,4 +62,5 @@ export interface InvoiceData {
   currency: string;
   paymentTerms: string;
   taxRate?: number;
+  customFields?: CustomFieldValue[];
 }

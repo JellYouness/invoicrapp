@@ -110,6 +110,8 @@ export class SettingsService {
         invoice_prefix: userSettings.invoice_prefix || DEFAULT_SETTINGS.invoice_prefix,
         invoice_counter: userSettings.invoice_counter ?? DEFAULT_SETTINGS.invoice_counter,
         invoice_number_format: userSettings.invoice_number_format || DEFAULT_SETTINGS.invoice_number_format,
+        
+        custom_fields: userSettings.custom_fields || DEFAULT_SETTINGS.custom_fields,
       };
     } catch (error) {
       console.error('Error getting settings with defaults:', error);

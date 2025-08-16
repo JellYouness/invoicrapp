@@ -55,7 +55,7 @@ import {
 import { InvoicePreview } from "@/components/invoice/InvoicePreview";
 import { getThemeMetadataSync } from "@/lib/invoice-themes";
 import type { InvoiceData } from "@/types/invoice";
-import { useToast } from "@/hooks/use-toast";
+import { showSuccess, showError } from "@/hooks/use-toast";
 
 interface ClientManagementProps {
   onSelectClient?: (client: Client) => void;
@@ -85,7 +85,7 @@ export const ClientManagement = ({
   const [loadingInvoices, setLoadingInvoices] = useState(false);
   const [previewInvoice, setPreviewInvoice] = useState<SavedInvoice | null>(null);
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
-  const { toast } = useToast();
+  // Using enhanced toast helpers
 
   interface ClientFormData {
     name: string;
@@ -123,11 +123,10 @@ export const ClientManagement = ({
       setClients(clientsWithCounts);
     } catch (error) {
       console.error('Error loading clients:', error);
-      toast({
-        title: "Error Loading Clients",
-        description: "Failed to load your clients. Please try again.",
-        variant: "destructive",
-      });
+      showError(
+        "Error Loading Clients",
+        "Failed to load your clients. Please try again."
+      );
     } finally {
       setLoading(false);
     }
@@ -184,11 +183,10 @@ export const ClientManagement = ({
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
-      toast({
-        title: "Validation Error",
-        description: "Client name is required.",
-        variant: "destructive",
-      });
+      showError(
+        "Validation Error",
+        "Client name is required."
+      );
       return;
     }
 
@@ -202,27 +200,25 @@ export const ClientManagement = ({
       }
 
       if (result) {
-        toast({
-          title: editingClient ? "Client Updated" : "Client Created",
-          description: `${formData.name} has been ${editingClient ? 'updated' : 'created'} successfully.`,
-        });
+        showSuccess(
+          editingClient ? "Client Updated" : "Client Created",
+          `${formData.name} has been ${editingClient ? 'updated' : 'created'} successfully.`
+        );
         setIsDialogOpen(false);
         resetForm();
         loadClients();
       } else {
-        toast({
-          title: "Error",
-          description: `Failed to ${editingClient ? 'update' : 'create'} client. Please try again.`,
-          variant: "destructive",
-        });
+        showError(
+          "Error",
+          `Failed to ${editingClient ? 'update' : 'create'} client. Please try again.`
+        );
       }
     } catch (error) {
       console.error('Error saving client:', error);
-      toast({
-        title: "Error",
-        description: `Failed to ${editingClient ? 'update' : 'create'} client. Please try again.`,
-        variant: "destructive",
-      });
+      showError(
+        "Error",
+        `Failed to ${editingClient ? 'update' : 'create'} client. Please try again.`
+      );
     } finally {
       setIsSaving(false);
     }
@@ -233,25 +229,23 @@ export const ClientManagement = ({
     try {
       const success = await deleteClient(id);
       if (success) {
-        toast({
-          title: "Client Deactivated",
-          description: "Client has been deactivated successfully.",
-        });
+        showSuccess(
+          "Client Deactivated",
+          "Client has been deactivated successfully."
+        );
         loadClients();
       } else {
-        toast({
-          title: "Error",
-          description: "Failed to deactivate client. Please try again.",
-          variant: "destructive",
-        });
+        showError(
+          "Error",
+          "Failed to deactivate client. Please try again."
+        );
       }
     } catch (error) {
       console.error('Error deleting client:', error);
-      toast({
-        title: "Error",
-        description: "Failed to deactivate client. Please try again.",
-        variant: "destructive",
-      });
+      showError(
+        "Error",
+        "Failed to deactivate client. Please try again."
+      );
     } finally {
       setDeletingId(null);
     }
@@ -265,11 +259,10 @@ export const ClientManagement = ({
       setShowInvoicesDialog(true);
     } catch (error) {
       console.error('Error loading client invoices:', error);
-      toast({
-        title: "Error Loading Invoices",
-        description: "Failed to load invoices for this client.",
-        variant: "destructive",
-      });
+      showError(
+        "Error Loading Invoices",
+        "Failed to load invoices for this client."
+      );
     } finally {
       setLoadingInvoices(false);
     }

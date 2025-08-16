@@ -2,9 +2,20 @@ import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Download, Printer, Send, Eye, Maximize2 } from "lucide-react";
-import { formatCurrency, formatDate, formatNumber, calculateInvoiceTotals } from "@/lib/format-utils";
+import {
+  formatCurrency,
+  formatDate,
+  formatNumber,
+  calculateInvoiceTotals,
+} from "@/lib/format-utils";
 import { SettingsService } from "@/lib/settings-service";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect, useRef } from "react";
@@ -12,8 +23,11 @@ import type { InvoiceData } from "@/types/invoice";
 import type { SettingsFormData } from "@/types/settings";
 import { jsPDF } from "jspdf";
 import html2canvas from "html2canvas";
-import { saveInvoice, convertInvoiceDataToSaveFormat } from "@/lib/invoice-service";
-import { useToast } from "@/hooks/use-toast";
+import {
+  saveInvoice,
+  convertInvoiceDataToSaveFormat,
+} from "@/lib/invoice-service";
+import { showSuccess, showError } from "@/hooks/use-toast";
 // Theme styles are now included in the invoiceData.theme object
 interface InvoicePreviewProps {
   invoiceData: InvoiceData;
@@ -22,13 +36,20 @@ interface InvoicePreviewProps {
   onSaveStateChange?: (saved: boolean) => void;
 }
 
-export const InvoicePreview = ({ invoiceData, onInvoiceSaved, isSaved = false, onSaveStateChange }: InvoicePreviewProps) => {
+export const InvoicePreview = ({
+  invoiceData,
+  onInvoiceSaved,
+  isSaved = false,
+  onSaveStateChange,
+}: InvoicePreviewProps) => {
   const pdfRef = useRef<HTMLDivElement>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [userSettings, setUserSettings] = useState<SettingsFormData | null>(null);
+  const [userSettings, setUserSettings] = useState<SettingsFormData | null>(
+    null
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [hasBeenSaved, setHasBeenSaved] = useState(isSaved);
-  const { toast } = useToast();
+  // Using enhanced toast helpers
 
   // Update local save state when prop changes
   useEffect(() => {
@@ -39,27 +60,30 @@ export const InvoicePreview = ({ invoiceData, onInvoiceSaved, isSaved = false, o
   useEffect(() => {
     const loadUserSettings = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user) {
-          const settings = await SettingsService.getSettingsWithDefaults(user.id);
+          const settings = await SettingsService.getSettingsWithDefaults(
+            user.id
+          );
           setUserSettings(settings);
         }
       } catch (error) {
-        console.error('Error loading user settings:', error);
+        console.error("Error loading user settings:", error);
       }
     };
 
     loadUserSettings();
   }, []);
 
-
   // Inject theme's custom CSS into the page
   useEffect(() => {
     const themeId = invoiceData.theme.id;
     const existingStyle = document.getElementById(`theme-${themeId}`);
-    
+
     if (!existingStyle && invoiceData.theme.customCSS) {
-      const styleElement = document.createElement('style');
+      const styleElement = document.createElement("style");
       styleElement.id = `theme-${themeId}`;
       styleElement.textContent = invoiceData.theme.customCSS;
       document.head.appendChild(styleElement);
@@ -68,7 +92,7 @@ export const InvoicePreview = ({ invoiceData, onInvoiceSaved, isSaved = false, o
     // Cleanup function to remove old theme styles
     return () => {
       const allThemeStyles = document.querySelectorAll('[id^="theme-"]');
-      allThemeStyles.forEach(style => {
+      allThemeStyles.forEach((style) => {
         if (style.id !== `theme-${themeId}`) {
           style.remove();
         }
@@ -89,43 +113,45 @@ export const InvoicePreview = ({ invoiceData, onInvoiceSaved, isSaved = false, o
 
       if (savedInvoice) {
         // Increment invoice counter in user settings after successful save
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user) {
           try {
-            const userSettings = await SettingsService.getSettingsWithDefaults(user.id);
+            const userSettings = await SettingsService.getSettingsWithDefaults(
+              user.id
+            );
             await SettingsService.saveUserSettings(user.id, {
               invoice_counter: userSettings.invoice_counter + 1,
             });
           } catch (error) {
-            console.error('Error updating invoice counter:', error);
+            console.error("Error updating invoice counter:", error);
           }
         }
 
         setHasBeenSaved(true);
         onSaveStateChange?.(true);
 
-        toast({
-          title: "Invoice Saved Successfully! 🎉",
-          description: `Invoice ${invoiceData.invoiceNumber} has been saved to your history.`,
-        });
+        showSuccess(
+          "Invoice Saved Successfully!",
+          `Invoice ${invoiceData.invoiceNumber} has been saved to your history.`
+        );
 
         onInvoiceSaved?.();
         return true;
       } else {
-        toast({
-          title: "Error Saving Invoice",
-          description: "There was an error saving your invoice. Please try again.",
-          variant: "destructive",
-        });
+        showError(
+          "Error Saving Invoice",
+          "There was an error saving your invoice. Please try again."
+        );
         return false;
       }
     } catch (error) {
-      console.error('Error saving invoice:', error);
-      toast({
-        title: "Error Saving Invoice",
-        description: "There was an error saving your invoice. Please try again.",
-        variant: "destructive",
-      });
+      console.error("Error saving invoice:", error);
+      showError(
+        "Error Saving Invoice",
+        "There was an error saving your invoice. Please try again."
+      );
       return false;
     } finally {
       setIsSaving(false);
@@ -288,12 +314,14 @@ export const InvoicePreview = ({ invoiceData, onInvoiceSaved, isSaved = false, o
       style={{ width: "210mm", minHeight: "297mm", aspectRatio: "210/297" }}
     >
       {/* Header */}
-      <div className={`invoice-header-${invoiceData.theme.id} -m-8 px-8 py-6 mb-6`}>
+      <div
+        className={`invoice-header-${invoiceData.theme.id} -m-8 px-8 py-6 mb-6`}
+      >
         <div className="flex justify-between items-start">
           {/* User/Company Information */}
           <div className="text-left text-white/90">
             <div className="space-y-1">
-              <p className="font-semibold text-lg">
+              <p className="font-bold text-2xl">
                 {userSettings?.company_name || "Your Company Name"}
               </p>
               {userSettings?.company_email && (
@@ -303,14 +331,16 @@ export const InvoicePreview = ({ invoiceData, onInvoiceSaved, isSaved = false, o
                 <p className="text-sm">{userSettings.company_phone}</p>
               )}
               {userSettings?.company_address && (
-                <p className="text-sm whitespace-pre-line">{userSettings.company_address}</p>
+                <p className="text-sm whitespace-pre-line">
+                  {userSettings.company_address}
+                </p>
               )}
               {userSettings?.company_website && (
                 <p className="text-sm">{userSettings.company_website}</p>
               )}
             </div>
           </div>
-          
+
           {/* Logo & Invoice Number */}
           <div className="text-right text-white/90">
             <div className="space-y-4 flex flex-col items-end">
@@ -362,13 +392,17 @@ export const InvoicePreview = ({ invoiceData, onInvoiceSaved, isSaved = false, o
           <div>
             <p className="text-sm text-muted-foreground">Invoice Date</p>
             <p className="font-semibold">
-              {userSettings ? formatDate(invoiceData.date, userSettings.date_format) : new Date(invoiceData.date).toLocaleDateString()}
+              {userSettings
+                ? formatDate(invoiceData.date, userSettings.date_format)
+                : new Date(invoiceData.date).toLocaleDateString()}
             </p>
           </div>
           <div>
             <p className="text-sm text-muted-foreground">Due Date</p>
             <p className="font-semibold">
-              {userSettings ? formatDate(invoiceData.dueDate, userSettings.date_format) : new Date(invoiceData.dueDate).toLocaleDateString()}
+              {userSettings
+                ? formatDate(invoiceData.dueDate, userSettings.date_format)
+                : new Date(invoiceData.dueDate).toLocaleDateString()}
             </p>
           </div>
         </div>
@@ -382,29 +416,51 @@ export const InvoicePreview = ({ invoiceData, onInvoiceSaved, isSaved = false, o
           <table className="w-full">
             <thead>
               <tr className={`invoice-table-${invoiceData.theme.id}`}>
-                <th className="text-left p-3 font-semibold text-white">Description</th>
-                <th className="text-center p-3 font-semibold w-20 text-white">Qty</th>
-                <th className="text-right p-3 font-semibold w-24 text-white">Price</th>
-                <th className="text-right p-3 font-semibold w-24 text-white">Total</th>
+                <th className="text-left p-3 font-semibold text-white">
+                  Description
+                </th>
+                <th className="text-center p-3 font-semibold w-20 text-white">
+                  Qty
+                </th>
+                <th className="text-right p-3 font-semibold w-24 text-white">
+                  Price
+                </th>
+                <th className="text-right p-3 font-semibold w-24 text-white">
+                  Total
+                </th>
               </tr>
             </thead>
             <tbody>
               {invoiceData.items.map((item, index) => (
                 <tr
                   key={item.id}
-                  className={`invoice-item-row-${invoiceData.theme.id} ${index % 2 === 0 ? "bg-muted/60" : ""}`}
+                  className={`invoice-item-row-${invoiceData.theme.id} ${
+                    index % 2 === 0 ? "bg-muted/60" : ""
+                  }`}
                 >
-                  <td className="p-3 border-b">
+                  <td className="px-3 py-2.5 border-b">
                     <p className="whitespace-pre-line">{item.description}</p>
                   </td>
-                  <td className="p-3 border-b text-center">
-                    {userSettings ? formatNumber(item.quantity, userSettings.number_format) : item.quantity}
+                  <td className="px-3 py-2.5 border-b text-center">
+                    {userSettings
+                      ? formatNumber(item.quantity, userSettings.number_format)
+                      : item.quantity}
                   </td>
-                  <td className="p-3 border-b text-right">
-                    {userSettings ? formatCurrency(item.price, userSettings.default_currency) : `$${item.price.toFixed(2)}`}
+                  <td className="px-3 py-2.5 border-b text-right">
+                    {userSettings
+                      ? formatCurrency(
+                          item.price,
+                          userSettings.default_currency
+                        )
+                      : `$${item.price.toFixed(2)}`}
                   </td>
-                  <td className="p-3 border-b text-right font-semibold">
-                    {userSettings ? formatCurrency(item.quantity * item.price, userSettings.default_currency) : `$${(item.quantity * item.price).toFixed(2)}`}
+                  <td className="px-3 py-2.5 border-b text-right font-semibold">
+                    {userSettings
+                      ? formatCurrency(
+                          item.quantity * item.price,
+                          userSettings.default_currency
+                        )
+                      : `$${(item.quantity * item.price).toFixed(2)}`}
                   </td>
                 </tr>
               ))}
@@ -413,30 +469,83 @@ export const InvoicePreview = ({ invoiceData, onInvoiceSaved, isSaved = false, o
         </div>
       </div>
 
-      {/* Totals */}
-      <div className="flex justify-end mt-8">
+      {/* Custom Fields and Totals */}
+      <div className="flex justify-between mt-8">
+        {/* Custom Fields - Left Side */}
         <div className="w-64 space-y-3">
-          <div className="flex justify-between items-center py-2">
+          {invoiceData.customFields &&
+            invoiceData.customFields.length > 0 &&
+            userSettings?.custom_fields && (
+              <>
+                <h4 className="font-semibold text-md text-muted-foreground uppercase tracking-wide">
+                  Additional Information
+                </h4>
+                <div className="space-y-2">
+                  {invoiceData.customFields.map((fieldValue) => {
+                    const fieldDefinition = userSettings.custom_fields?.find(
+                      (cf) => cf.id === fieldValue.fieldId
+                    );
+                    if (!fieldDefinition || !fieldValue.value) return null;
+
+                    return (
+                      <div
+                        key={fieldValue.fieldId}
+                        className="flex flex-row items-center gap-2"
+                      >
+                        <span className="text-sm text-muted-foreground font-semibold">
+                          {fieldDefinition.label}:
+                        </span>
+                        <span className="text-md text-black font-semibold">
+                          {fieldValue.value}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </>
+            )}
+        </div>
+
+        {/* Totals - Right Side */}
+        <div className="w-64 space-y-3">
+          <div className="flex justify-between items-center">
             <span className="text-muted-foreground">Subtotal:</span>
             <span className="font-semibold">
-              {userSettings ? formatCurrency(calculateSubtotal(), userSettings.default_currency) : `$${calculateSubtotal().toFixed(2)}`}
+              {userSettings
+                ? formatCurrency(
+                    calculateSubtotal(),
+                    userSettings.default_currency
+                  )
+                : `$${calculateSubtotal().toFixed(2)}`}
             </span>
           </div>
           {invoiceData.taxRate && invoiceData.taxRate > 0 && (
-            <div className="flex justify-between items-center py-2">
-              <span className="text-muted-foreground">Tax ({invoiceData.taxRate}%):</span>
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">
+                Tax ({invoiceData.taxRate}%):
+              </span>
               <span className="font-semibold">
-                {userSettings ? formatCurrency(calculateTax(), userSettings.default_currency) : `$${calculateTax().toFixed(2)}`}
+                {userSettings
+                  ? formatCurrency(
+                      calculateTax(),
+                      userSettings.default_currency
+                    )
+                  : `$${calculateTax().toFixed(2)}`}
               </span>
             </div>
           )}
           <Separator />
-          <div className={`invoice-total-${invoiceData.theme.id} flex justify-between items-center py-3 px-4`}>
-            <span className="font-bold text-lg">
-              Total:
-            </span>
+          <div
+            className={`invoice-total-${invoiceData.theme.id} flex justify-between items-center py-3 px-4`}
+          >
+            <span className="font-bold text-lg">Total:</span>
             <span className="font-bold text-xl">
-              {userSettings ? formatCurrency(calculateTotal(), userSettings.default_currency) : `$${calculateTotal().toFixed(2)}`}
+              {userSettings
+                ? formatCurrency(
+                    calculateTotal(),
+                    userSettings.default_currency
+                  )
+                : `$${calculateTotal().toFixed(2)}`}
             </span>
           </div>
         </div>
@@ -476,29 +585,39 @@ export const InvoicePreview = ({ invoiceData, onInvoiceSaved, isSaved = false, o
             <div className="p-8">
               <div className="space-y-8">
                 {/* Header */}
-                <div className={`invoice-header-${invoiceData.theme.id} -m-8 px-8 py-6 mb-6`}>
+                <div
+                  className={`invoice-header-${invoiceData.theme.id} -m-8 px-8 py-6 mb-6`}
+                >
                   <div className="flex justify-between items-start">
                     {/* User/Company Information */}
                     <div className="text-left text-white/90">
                       <div className="space-y-1">
-                        <p className="font-semibold text-lg">
+                        <p className="font-bold text-2xl">
                           {userSettings?.company_name || "Your Company Name"}
                         </p>
                         {userSettings?.company_email && (
-                          <p className="text-sm">{userSettings.company_email}</p>
+                          <p className="text-sm">
+                            {userSettings.company_email}
+                          </p>
                         )}
                         {userSettings?.company_phone && (
-                          <p className="text-sm">{userSettings.company_phone}</p>
+                          <p className="text-sm">
+                            {userSettings.company_phone}
+                          </p>
                         )}
                         {userSettings?.company_address && (
-                          <p className="text-sm whitespace-pre-line">{userSettings.company_address}</p>
+                          <p className="text-sm whitespace-pre-line">
+                            {userSettings.company_address}
+                          </p>
                         )}
                         {userSettings?.company_website && (
-                          <p className="text-sm">{userSettings.company_website}</p>
+                          <p className="text-sm">
+                            {userSettings.company_website}
+                          </p>
                         )}
                       </div>
                     </div>
-                    
+
                     {/* Logo & Invoice Number */}
                     <div className="text-right text-white/90">
                       <div className="space-y-4 flex flex-col items-end">
@@ -512,7 +631,9 @@ export const InvoicePreview = ({ invoiceData, onInvoiceSaved, isSaved = false, o
                           </div>
                         )}
                         <div className="text-right">
-                          <p className="text-sm text-white/60">Invoice Number</p>
+                          <p className="text-sm text-white/60">
+                            Invoice Number
+                          </p>
                           <p className="font-mono font-semibold text-lg">
                             {invoiceData.invoiceNumber}
                           </p>
@@ -554,13 +675,23 @@ export const InvoicePreview = ({ invoiceData, onInvoiceSaved, isSaved = false, o
                         Invoice Date
                       </p>
                       <p className="font-semibold">
-                        {userSettings ? formatDate(invoiceData.date, userSettings.date_format) : new Date(invoiceData.date).toLocaleDateString()}
+                        {userSettings
+                          ? formatDate(
+                              invoiceData.date,
+                              userSettings.date_format
+                            )
+                          : new Date(invoiceData.date).toLocaleDateString()}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Due Date</p>
                       <p className="font-semibold">
-                        {userSettings ? formatDate(invoiceData.dueDate, userSettings.date_format) : new Date(invoiceData.dueDate).toLocaleDateString()}
+                        {userSettings
+                          ? formatDate(
+                              invoiceData.dueDate,
+                              userSettings.date_format
+                            )
+                          : new Date(invoiceData.dueDate).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
@@ -592,21 +723,38 @@ export const InvoicePreview = ({ invoiceData, onInvoiceSaved, isSaved = false, o
                         {invoiceData.items.map((item, index) => (
                           <tr
                             key={item.id}
-                            className={`invoice-item-row-${invoiceData.theme.id} ${index % 2 === 0 ? "bg-muted/60" : ""}`}
+                            className={`invoice-item-row-${
+                              invoiceData.theme.id
+                            } ${index % 2 === 0 ? "bg-muted/60" : ""}`}
                           >
-                            <td className="p-3 border-b">
+                            <td className="px-3 py-2.5 border-b">
                               <p className="whitespace-pre-line">
                                 {item.description}
                               </p>
                             </td>
-                            <td className="p-3 border-b text-center">
-                              {userSettings ? formatNumber(item.quantity, userSettings.number_format) : item.quantity}
+                            <td className="px-3 py-2.5 border-b text-center">
+                              {userSettings
+                                ? formatNumber(
+                                    item.quantity,
+                                    userSettings.number_format
+                                  )
+                                : item.quantity}
                             </td>
-                            <td className="p-3 border-b text-right">
-                              {userSettings ? formatCurrency(item.price, userSettings.default_currency) : `$${item.price.toFixed(2)}`}
+                            <td className="px-3 py-2.5 border-b text-right">
+                              {userSettings
+                                ? formatCurrency(
+                                    item.price,
+                                    userSettings.default_currency
+                                  )
+                                : `$${item.price.toFixed(2)}`}
                             </td>
-                            <td className="p-3 border-b text-right font-semibold">
-                              {userSettings ? formatCurrency(item.quantity * item.price, userSettings.default_currency) : `$${(item.quantity * item.price).toFixed(2)}`}
+                            <td className="px-3 py-2.5 border-b text-right font-semibold">
+                              {userSettings
+                                ? formatCurrency(
+                                    item.quantity * item.price,
+                                    userSettings.default_currency
+                                  )
+                                : `$${(item.quantity * item.price).toFixed(2)}`}
                             </td>
                           </tr>
                         ))}
@@ -615,30 +763,85 @@ export const InvoicePreview = ({ invoiceData, onInvoiceSaved, isSaved = false, o
                   </div>
                 </div>
 
-                {/* Totals */}
-                <div className="flex justify-end mt-8">
+                {/* Custom Fields and Totals */}
+                <div className="flex justify-between mt-8">
+                  {/* Custom Fields - Left Side */}
                   <div className="w-64 space-y-3">
-                    <div className="flex justify-between items-center py-2">
+                    {invoiceData.customFields &&
+                      invoiceData.customFields.length > 0 &&
+                      userSettings?.custom_fields && (
+                        <>
+                          <h4 className="font-semibold text-md text-muted-foreground uppercase tracking-wide">
+                            Additional Information
+                          </h4>
+                          <div className="space-y-2">
+                            {invoiceData.customFields.map((fieldValue) => {
+                              const fieldDefinition =
+                                userSettings.custom_fields?.find(
+                                  (cf) => cf.id === fieldValue.fieldId
+                                );
+                              if (!fieldDefinition || !fieldValue.value)
+                                return null;
+
+                              return (
+                                <div
+                                  key={fieldValue.fieldId}
+                                  className="flex flex-row items-center gap-2"
+                                >
+                                  <span className="text-sm text-muted-foreground font-semibold">
+                                    {fieldDefinition.label}:
+                                  </span>
+                                  <span className="text-md text-black font-semibold">
+                                    {fieldValue.value}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </>
+                      )}
+                  </div>
+
+                  {/* Totals - Right Side */}
+                  <div className="w-64 space-y-3">
+                    <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Subtotal:</span>
                       <span className="font-semibold">
-                        {userSettings ? formatCurrency(calculateSubtotal(), userSettings.default_currency) : `$${calculateSubtotal().toFixed(2)}`}
+                        {userSettings
+                          ? formatCurrency(
+                              calculateSubtotal(),
+                              userSettings.default_currency
+                            )
+                          : `$${calculateSubtotal().toFixed(2)}`}
                       </span>
                     </div>
                     {invoiceData.taxRate && invoiceData.taxRate > 0 && (
-                      <div className="flex justify-between items-center py-2">
-                        <span className="text-muted-foreground">Tax ({invoiceData.taxRate}%):</span>
+                      <div className="flex justify-between items-center">
+                        <span className="text-muted-foreground">
+                          Tax ({invoiceData.taxRate}%):
+                        </span>
                         <span className="font-semibold">
-                          {userSettings ? formatCurrency(calculateTax(), userSettings.default_currency) : `$${calculateTax().toFixed(2)}`}
+                          {userSettings
+                            ? formatCurrency(
+                                calculateTax(),
+                                userSettings.default_currency
+                              )
+                            : `$${calculateTax().toFixed(2)}`}
                         </span>
                       </div>
                     )}
                     <Separator />
-                    <div className={`invoice-total-${invoiceData.theme.id} flex justify-between items-center py-3 px-4`}>
-                      <span className="font-bold text-lg">
-                        Total:
-                      </span>
+                    <div
+                      className={`invoice-total-${invoiceData.theme.id} flex justify-between items-center py-3 px-4`}
+                    >
+                      <span className="font-bold text-lg">Total:</span>
                       <span className="font-bold text-xl">
-                        {userSettings ? formatCurrency(calculateTotal(), userSettings.default_currency) : `$${calculateTotal().toFixed(2)}`}
+                        {userSettings
+                          ? formatCurrency(
+                              calculateTotal(),
+                              userSettings.default_currency
+                            )
+                          : `$${calculateTotal().toFixed(2)}`}
                       </span>
                     </div>
                   </div>
@@ -666,7 +869,9 @@ export const InvoicePreview = ({ invoiceData, onInvoiceSaved, isSaved = false, o
                 <Maximize2 className="w-4 h-4" />
                 View Full Size
               </Button>
-              <p className="text-xs text-muted-foreground">View Full size to print or download</p>
+              <p className="text-xs text-muted-foreground">
+                View Full size to print or download
+              </p>
             </div>
           </DialogTrigger>
           <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto z-[100]">
@@ -686,7 +891,11 @@ export const InvoicePreview = ({ invoiceData, onInvoiceSaved, isSaved = false, o
                   disabled={isSaving}
                 >
                   <Printer className="w-4 h-4" />
-                  {isSaving ? (hasBeenSaved ? "Printing..." : "Saving...") : "Print"}
+                  {isSaving
+                    ? hasBeenSaved
+                      ? "Printing..."
+                      : "Saving..."
+                    : "Print"}
                 </Button>
                 <Button
                   className="flex items-center gap-2"
@@ -694,7 +903,11 @@ export const InvoicePreview = ({ invoiceData, onInvoiceSaved, isSaved = false, o
                   disabled={isSaving}
                 >
                   <Download className="w-4 h-4" />
-                  {isSaving ? (hasBeenSaved ? "Downloading..." : "Saving...") : "Download PDF"}
+                  {isSaving
+                    ? hasBeenSaved
+                      ? "Downloading..."
+                      : "Saving..."
+                    : "Download PDF"}
                 </Button>
               </div>
 

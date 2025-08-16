@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
+import { showSuccess, showError } from "@/hooks/use-toast";
 import { SettingsService } from "@/lib/settings-service";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -71,7 +71,7 @@ interface NotificationSettings {
 
 export const Profile = () => {
   const router = useRouter();
-  const { toast } = useToast();
+  // Using enhanced toast helpers
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -162,11 +162,10 @@ export const Profile = () => {
 
     } catch (error) {
       console.error("Error loading user data:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load profile data",
-        variant: "destructive",
-      });
+      showError(
+        "Error",
+        "Failed to load profile data"
+      );
     } finally {
       setLoading(false);
     }
@@ -191,20 +190,19 @@ export const Profile = () => {
 
       if (error) throw error;
 
-      toast({
-        title: "Success",
-        description: "Profile updated successfully",
-      });
+      showSuccess(
+        "Success",
+        "Profile updated successfully"
+      );
 
       // Reload data
       await loadUserData();
     } catch (error) {
       console.error("Error saving profile:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update profile",
-        variant: "destructive",
-      });
+      showError(
+        "Error",
+        "Failed to update profile"
+      );
     } finally {
       setSaving(false);
     }
@@ -227,17 +225,16 @@ export const Profile = () => {
 
       await SettingsService.saveUserSettings(user.id, updatedSettings);
 
-      toast({
-        title: "Success",
-        description: "Notification preferences updated successfully",
-      });
+      showSuccess(
+        "Success",
+        "Notification preferences updated successfully"
+      );
     } catch (error) {
       console.error("Error saving notification settings:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update notification preferences",
-        variant: "destructive",
-      });
+      showError(
+        "Error",
+        "Failed to update notification preferences"
+      );
     } finally {
       setSaving(false);
     }
@@ -245,20 +242,18 @@ export const Profile = () => {
 
   const handlePasswordChange = async () => {
     if (passwordForm.new_password !== passwordForm.confirm_password) {
-      toast({
-        title: "Error",
-        description: "New passwords don't match",
-        variant: "destructive",
-      });
+      showError(
+        "Error",
+        "New passwords don't match"
+      );
       return;
     }
 
     if (passwordForm.new_password.length < 6) {
-      toast({
-        title: "Error",
-        description: "Password must be at least 6 characters",
-        variant: "destructive",
-      });
+      showError(
+        "Error",
+        "Password must be at least 6 characters"
+      );
       return;
     }
 
@@ -276,17 +271,16 @@ export const Profile = () => {
         confirm_password: "",
       });
 
-      toast({
-        title: "Success",
-        description: "Password updated successfully",
-      });
+      showSuccess(
+        "Success",
+        "Password updated successfully"
+      );
     } catch (error) {
       console.error("Error updating password:", error);
-      toast({
-        title: "Error",
-        description: "Failed to update password",
-        variant: "destructive",
-      });
+      showError(
+        "Error",
+        "Failed to update password"
+      );
     } finally {
       setSaving(false);
     }
@@ -301,17 +295,16 @@ export const Profile = () => {
       await supabase.auth.signOut();
       router.push("/");
       
-      toast({
-        title: "Account Deleted",
-        description: "Your account has been deleted successfully",
-      });
+      showSuccess(
+        "Account Deleted",
+        "Your account has been deleted successfully"
+      );
     } catch (error) {
       console.error("Error deleting account:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete account",
-        variant: "destructive",
-      });
+      showError(
+        "Error",
+        "Failed to delete account"
+      );
     }
   };
 

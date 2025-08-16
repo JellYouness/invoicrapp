@@ -1,3 +1,11 @@
+export interface CustomField {
+  id: string;
+  label: string;
+  type: 'text' | 'number' | 'date';
+  required: boolean;
+  defaultValue: string;
+}
+
 export interface UserSettings {
   id?: string;
   user_id?: string;
@@ -33,6 +41,9 @@ export interface UserSettings {
   invoice_prefix?: string;
   invoice_counter?: number;
   invoice_number_format?: string;
+  
+  // Custom Fields
+  custom_fields?: CustomField[];
   
   // Timestamps
   created_at?: string;
@@ -71,6 +82,9 @@ export interface SettingsFormData {
   invoice_prefix: string;
   invoice_counter: number;
   invoice_number_format: string;
+  
+  // Custom Fields
+  custom_fields: CustomField[];
 }
 
 export const DEFAULT_SETTINGS: SettingsFormData = {
@@ -105,6 +119,9 @@ export const DEFAULT_SETTINGS: SettingsFormData = {
   invoice_prefix: 'INV',
   invoice_counter: 1,
   invoice_number_format: '{prefix}-{number}',
+  
+  // Custom Fields
+  custom_fields: [],
 };
 
 export const CURRENCY_OPTIONS = [

@@ -12,6 +12,7 @@ import {
 import { ThemeSelection } from "./invoice/ThemeSelection";
 import { ClientInformation } from "./invoice/ClientInformation";
 import { InvoiceItems } from "./invoice/InvoiceItems";
+import { CustomFields } from "./invoice/CustomFields";
 import { InvoicePreview } from "./invoice/InvoicePreview";
 import { getDefaultTheme } from "@/lib/invoice-themes";
 import {
@@ -20,7 +21,7 @@ import {
   type SavedInvoice,
 } from "@/lib/invoice-service";
 import { SettingsService } from "@/lib/settings-service";
-import { useToast } from "@/hooks/use-toast";
+import { showSuccess, showError } from "@/hooks/use-toast";
 import { getThemeById } from "@/lib/invoice-themes";
 import { getEditingLogo } from "@/lib/logo-utils";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,13 +31,16 @@ import type {
   ClientInfo,
   InvoiceItem,
   InvoiceData,
+  CustomFieldValue,
 } from "@/types/invoice";
+import type { CustomField } from "@/types/settings";
 
 const steps = [
   { id: 1, title: "Choose Theme", description: "Select your invoice design" },
   { id: 2, title: "Client Info", description: "Add client details" },
   { id: 3, title: "Invoice Items", description: "Add products/services" },
-  { id: 4, title: "Preview", description: "Review and generate" },
+  { id: 4, title: "Custom Fields", description: "Add additional information" },
+  { id: 5, title: "Preview", description: "Review and generate" },
 ];
 
 interface InvoiceGeneratorProps {
@@ -50,10 +54,11 @@ export const InvoiceGenerator = ({
 }: InvoiceGeneratorProps) => {
   const [currentStep, setCurrentStep] = useState(1);
   const [invoiceData, setInvoiceData] = useState<InvoiceData | null>(null);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  const [isNewClient, setIsNewClient] = useState(true);
-  const { toast } = useToast();
+  const [isNewClient, setIsNewClient] = useState(false);
+  // Using enhanced toast helpers
 
   // Initialize default invoice data with user settings
   useEffect(() => {
@@ -73,6 +78,9 @@ export const InvoiceGenerator = ({
           const userSettings = await SettingsService.getSettingsWithDefaults(
             user.id
           );
+
+          // Load custom fields
+          setCustomFields(userSettings.custom_fields || []);
 
           // Use user's default theme if available
           if (userSettings.default_theme) {
@@ -126,6 +134,7 @@ export const InvoiceGenerator = ({
             ? (await SettingsService.getSettingsWithDefaults(user.id))
                 .default_tax_rate
             : 0,
+          customFields: [],
         };
         setInvoiceData(defaultData);
       } catch (error) {
@@ -145,6 +154,7 @@ export const InvoiceGenerator = ({
           currency: "USD",
           paymentTerms: "Net 30",
           taxRate: 0,
+          customFields: [],
         };
         setInvoiceData(defaultData);
       }
@@ -174,9 +184,12 @@ export const InvoiceGenerator = ({
             currency: "USD",
             paymentTerms: "Net 30",
             notes: editingInvoice.notes || undefined,
-            taxRate: 0,
+            taxRate: editingInvoice.tax_amount && editingInvoice.subtotal > 0 
+              ? (editingInvoice.tax_amount / editingInvoice.subtotal) * 100 
+              : 0,
+            customFields: editingInvoice.custom_fields || [],
           });
-          setCurrentStep(4); // Go to preview step when editing
+          setCurrentStep(5); // Go to preview step when editing
         }
       };
 
@@ -210,6 +223,14 @@ export const InvoiceGenerator = ({
         return invoiceData.client?.name && invoiceData.client?.address;
       case 3:
         return invoiceData.items?.length > 0;
+      case 4:
+        // Check if all required custom fields are filled
+        const requiredFields = customFields.filter(field => field.required);
+        const customFieldValues = invoiceData.customFields || [];
+        return requiredFields.every(field => {
+          const fieldValue = customFieldValues.find(cfv => cfv.fieldId === field.id);
+          return fieldValue && fieldValue.value.trim() !== '';
+        });
       default:
         return true;
     }
@@ -240,31 +261,27 @@ export const InvoiceGenerator = ({
         }
 
         setIsSaved(true);
-        toast({
-          title: "Invoice Saved Successfully! 🎉",
-          description: `Invoice ${invoiceData.invoiceNumber} has been saved to your history.`,
-        });
+        showSuccess(
+          "Invoice Saved Successfully!",
+          `Invoice ${invoiceData.invoiceNumber} has been saved to your history.`
+        );
 
         // Don't reset the saved state - keep it saved
 
         // Call the callback if provided
         onInvoiceSaved?.();
       } else {
-        toast({
-          title: "Error Saving Invoice",
-          description:
-            "There was an error saving your invoice. Please try again.",
-          variant: "destructive",
-        });
+        showError(
+          "Error Saving Invoice",
+          "There was an error saving your invoice. Please try again."
+        );
       }
     } catch (error) {
       console.error("Error saving invoice:", error);
-      toast({
-        title: "Error Saving Invoice",
-        description:
-          "There was an error saving your invoice. Please try again.",
-        variant: "destructive",
-      });
+      showError(
+        "Error Saving Invoice",
+        "There was an error saving your invoice. Please try again."
+      );
     } finally {
       setIsSaving(false);
     }
@@ -298,9 +315,19 @@ export const InvoiceGenerator = ({
           <InvoiceItems
             items={invoiceData.items}
             onItemsUpdate={(items) => updateInvoiceData("items", items)}
+            taxRate={invoiceData.taxRate}
+            onTaxRateUpdate={(taxRate) => updateInvoiceData("taxRate", taxRate)}
           />
         );
       case 4:
+        return (
+          <CustomFields
+            customFields={customFields}
+            customFieldValues={invoiceData.customFields || []}
+            onCustomFieldValuesChange={(values) => updateInvoiceData("customFields", values)}
+          />
+        );
+      case 5:
         return (
           <InvoicePreview 
             invoiceData={invoiceData} 
@@ -339,7 +366,7 @@ export const InvoiceGenerator = ({
                 </h2>
               </div>
 
-              <div className="space-y-20">
+              <div className="space-y-14">
                 {steps.map((step, index) => (
                   <div key={step.id} className="relative">
                     <div className="flex items-start gap-4">
@@ -370,7 +397,7 @@ export const InvoiceGenerator = ({
 
                     {/* Vertical connector line */}
                     {index < steps.length - 1 && (
-                      <div className="absolute left-5 top-[52px] w-0.5 h-16 bg-border" />
+                      <div className="absolute left-5 top-[48px] w-0.5 h-12 bg-border" />
                     )}
                   </div>
                 ))}

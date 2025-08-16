@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { useToast } from "@/hooks/use-toast";
+import { showSuccess, showError } from "@/hooks/use-toast";
 import {
   HelpCircle,
   MessageSquare,
@@ -52,7 +52,7 @@ export const HelpSupport = () => {
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const { toast } = useToast();
+  // Using enhanced toast helpers
 
   const faqItems: FAQItem[] = [
     {
@@ -131,10 +131,10 @@ export const HelpSupport = () => {
     // Simulate form submission
     await new Promise((resolve) => setTimeout(resolve, 2000));
 
-    toast({
-      title: "Message sent successfully!",
-      description: "We'll get back to you within 24 hours.",
-    });
+    showSuccess(
+      "Message sent successfully!",
+      "We'll get back to you within 24 hours."
+    );
 
     setContactForm({
       name: "",
