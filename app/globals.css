@@ -47,14 +47,14 @@ All colors are in HEX format.
   --popover: 0 0% 100%;
   --popover-foreground: 0 0% 15%;
   /* Updated primary color to modern green for SaaS branding */
-  --primary: 158 64% 52%;
+  --primary: 158 64% 42%;
   --primary-foreground: 0 0% 100%;
   --secondary: 120 60% 97%;
   --secondary-foreground: 0 0% 20%;
   --muted: 0 0% 97%;
   --muted-foreground: 0 0% 45%;
   /* Added accent color for highlights */
-  --accent: 142 71% 45%;
+  --accent: 142 71% 35%;
   --accent-foreground: 0 0% 100%;
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 100%;
@@ -79,7 +79,7 @@ All colors are in HEX format.
   /* Invoice Theme Colors */
   --invoice-blue: 217 91% 60%;
   --invoice-blue-light: 219 100% 96%;
-  --invoice-green: 142 71% 45%;
+  --invoice-green: 142 71% 35%;
   --invoice-green-light: 142 76% 96%;
   --invoice-purple: 262 83% 58%;
   --invoice-purple-light: 262 90% 96%;
@@ -99,13 +99,13 @@ All colors are in HEX format.
   --card-foreground: 0 0% 98%;
   --popover: 0 0% 4%;
   --popover-foreground: 0 0% 98%;
-  --primary: 158 64% 52%;
+  --primary: 158 64% 42%;
   --primary-foreground: 0 0% 4%;
   --secondary: 0 0% 15%;
   --secondary-foreground: 0 0% 98%;
   --muted: 0 0% 15%;
   --muted-foreground: 0 0% 64%;
-  --accent: 142 69% 58%;
+  --accent: 142 69% 48%;
   --accent-foreground: 0 0% 4%;
   --destructive: 0 63% 31%;
   --destructive-foreground: 0 84% 60%;
@@ -129,7 +129,7 @@ All colors are in HEX format.
   /* Invoice Theme Colors - Dark Mode */
   --invoice-blue: 217 91% 70%;
   --invoice-blue-light: 217 91% 15%;
-  --invoice-green: 142 71% 55%;
+  --invoice-green: 142 71% 45%;
   --invoice-green-light: 142 71% 15%;
   --invoice-purple: 262 83% 68%;
   --invoice-purple-light: 262 83% 15%;
