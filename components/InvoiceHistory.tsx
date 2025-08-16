@@ -14,7 +14,8 @@ import {
   Clock,
   MoreVertical,
   Send,
-  CircleCheck
+  CircleCheck,
+  RefreshCcw
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -210,7 +211,7 @@ export const InvoiceHistory = ({ onEditInvoice, onViewInvoice }: InvoiceHistoryP
     return (
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Invoice History</h2>
+          <h2 className="text-2xl font-bold">Invoices</h2>
         </div>
         <div className="grid gap-4">
           {[1, 2, 3].map((i) => (
@@ -234,13 +235,13 @@ export const InvoiceHistory = ({ onEditInvoice, onViewInvoice }: InvoiceHistoryP
     <div className="space-y-6 w-full">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Invoice History</h2>
+          <h2 className="text-2xl font-bold text-gray-900">Invoices</h2>
           <p className="text-gray-600 mt-1">
             Manage and track all your invoices in one place
           </p>
         </div>
         <Button onClick={loadInvoices} variant="outline" size="sm">
-          <Clock className="w-4 h-4 mr-2" />
+          <RefreshCcw className="w-4 h-4 mr-2" />
           Refresh
         </Button>
       </div>
