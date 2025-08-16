@@ -2,6 +2,7 @@
 
 import React, { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { Logo } from "@/components/ui/Logo"
 import { FileText, Menu, X } from "lucide-react"
 import { useRouter } from "next/navigation"
 
@@ -13,12 +14,7 @@ const Header = () => {
     <header className="bg-background/95 backdrop-blur-sm border-b border-border sticky top-0 z-50">
       <div className="container mx-auto px-4 sm:px-6 py-4">
         <div className="flex justify-between items-center">
-          <div className="flex items-center space-x-2 sm:space-x-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-lg flex items-center justify-center">
-              <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary-foreground" />
-            </div>
-            <span className="text-xl sm:text-2xl font-bold text-foreground">Invoicr</span>
-          </div>
+          <Logo size="lg" className="text-xl sm:text-2xl" />
           
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-4">

@@ -49,6 +49,7 @@ export interface InvoiceItem {
 export interface CustomFieldValue {
   fieldId: string;
   value: string;
+  label?: string; // For dynamic fields that don't exist in user settings
 }
 
 export interface InvoiceData {

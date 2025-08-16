@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Logo } from "@/components/ui/Logo";
 import { supabase } from "@/integrations/supabase/client";
 import { showSuccess, showError } from "@/hooks/use-toast";
 import type { User as SupabaseUser } from "@supabase/supabase-js";
@@ -111,20 +112,7 @@ export const DashboardHeader = ({
             </Button>
           )}
 
-          <div className="flex items-center space-x-2 sm:space-x-3">
-            {/* Logo using project theme */}
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
-              <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
-            </div>
-            <div className="">
-              <h1 className="text-lg sm:text-xl font-bold text-foreground">
-                Invoicr
-              </h1>
-              <p className=" hidden sm:block text-xs sm:text-sm text-muted-foreground font-medium">
-                Professional Dashboard
-              </p>
-            </div>
-          </div>
+          <Logo size="md" className="text-lg sm:text-xl" />
         </div>
 
         {/* Right side - Actions and user menu */}

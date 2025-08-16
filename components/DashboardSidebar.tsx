@@ -1,6 +1,7 @@
 "use client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Logo } from "@/components/ui/Logo";
 import {
   FileText,
   Users,
@@ -111,17 +112,7 @@ export const DashboardSidebar = ({
         {/* Mobile Close Button */}
         {onClose && (
           <div className="lg:hidden flex justify-between p-4">
-            {/* Logo using project theme */}
-            <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg">
-                <FileText className="w-4 h-4 sm:w-5 sm:h-5 text-primary-foreground" />
-              </div>
-              <div className="">
-                <h1 className="text-lg sm:text-xl font-bold text-foreground">
-                  Invoicr
-                </h1>
-              </div>
-            </div>
+            <Logo size="md" />
 
             <Button variant="ghost" size="sm" onClick={onClose}>
               <X className="h-5 w-5" />

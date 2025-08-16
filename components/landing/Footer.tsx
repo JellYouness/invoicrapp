@@ -1,6 +1,7 @@
 'use client'
 
 import React from "react"
+import { Logo } from "@/components/ui/Logo"
 import { FileText } from "lucide-react"
 
 const Footer = () => {
@@ -9,12 +10,7 @@ const Footer = () => {
       <div className="container mx-auto">
         <div className="grid md:grid-cols-4 gap-8 mb-12">
           <div>
-            <div className="flex items-center space-x-3 mb-4">
-              <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                <FileText className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span className="text-xl font-bold text-foreground">Invoicr</span>
-            </div>
+            <Logo size="md" className="mb-4 text-xl" />
             <p className="text-muted-foreground">Professional invoicing made simple for modern businesses.</p>
           </div>
           <div>

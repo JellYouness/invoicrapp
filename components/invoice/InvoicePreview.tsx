@@ -479,18 +479,25 @@ export const InvoicePreview = ({
         {/* Custom Fields - Left Side */}
         <div className="w-full lg:w-64 space-y-3">
           {invoiceData.customFields &&
-            invoiceData.customFields.length > 0 &&
-            userSettings?.custom_fields && (
+            invoiceData.customFields.length > 0 && (
               <>
                 <h4 className="font-semibold text-md text-muted-foreground uppercase tracking-wide">
                   Additional Information
                 </h4>
                 <div className="space-y-2">
                   {invoiceData.customFields.map((fieldValue) => {
-                    const fieldDefinition = userSettings.custom_fields?.find(
-                      (cf) => cf.id === fieldValue.fieldId
-                    );
-                    if (!fieldDefinition || !fieldValue.value) return null;
+                    if (!fieldValue.value) return null;
+
+                    // First try to find in user settings (pre-configured fields)
+                    let fieldLabel = fieldValue.label;
+                    if (!fieldLabel && userSettings?.custom_fields) {
+                      const fieldDefinition = userSettings.custom_fields.find(
+                        (cf) => cf.id === fieldValue.fieldId
+                      );
+                      fieldLabel = fieldDefinition?.label;
+                    }
+                    
+                    if (!fieldLabel) return null;
 
                     return (
                       <div
@@ -498,7 +505,7 @@ export const InvoicePreview = ({
                         className="flex flex-row items-center gap-2"
                       >
                         <span className="text-sm text-muted-foreground font-semibold">
-                          {fieldDefinition.label}:
+                          {fieldLabel}:
                         </span>
                         <span className="text-md text-black font-semibold">
                           {fieldValue.value}
@@ -773,20 +780,25 @@ export const InvoicePreview = ({
                   {/* Custom Fields - Left Side */}
                   <div className="w-64 space-y-3">
                     {invoiceData.customFields &&
-                      invoiceData.customFields.length > 0 &&
-                      userSettings?.custom_fields && (
+                      invoiceData.customFields.length > 0 && (
                         <>
                           <h4 className="font-semibold text-md text-muted-foreground uppercase tracking-wide">
                             Additional Information
                           </h4>
                           <div className="space-y-2">
                             {invoiceData.customFields.map((fieldValue) => {
-                              const fieldDefinition =
-                                userSettings.custom_fields?.find(
+                              if (!fieldValue.value) return null;
+
+                              // First try to find in user settings (pre-configured fields)
+                              let fieldLabel = fieldValue.label;
+                              if (!fieldLabel && userSettings?.custom_fields) {
+                                const fieldDefinition = userSettings.custom_fields.find(
                                   (cf) => cf.id === fieldValue.fieldId
                                 );
-                              if (!fieldDefinition || !fieldValue.value)
-                                return null;
+                                fieldLabel = fieldDefinition?.label;
+                              }
+                              
+                              if (!fieldLabel) return null;
 
                               return (
                                 <div
@@ -794,7 +806,7 @@ export const InvoicePreview = ({
                                   className="flex flex-row items-center gap-2"
                                 >
                                   <span className="text-sm text-muted-foreground font-semibold">
-                                    {fieldDefinition.label}:
+                                    {fieldLabel}:
                                   </span>
                                   <span className="text-md text-black font-semibold">
                                     {fieldValue.value}
