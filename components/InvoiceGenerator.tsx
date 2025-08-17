@@ -135,6 +135,7 @@ export const InvoiceGenerator = ({
                 .default_tax_rate
             : 0,
           customFields: [],
+          dynamicFields: [],
         };
         setInvoiceData(defaultData);
       } catch (error) {
@@ -155,6 +156,7 @@ export const InvoiceGenerator = ({
           paymentTerms: "Net 30",
           taxRate: 0,
           customFields: [],
+          dynamicFields: [],
         };
         setInvoiceData(defaultData);
       }
@@ -329,6 +331,10 @@ export const InvoiceGenerator = ({
             customFieldValues={invoiceData.customFields || []}
             onCustomFieldValuesChange={(values) =>
               updateInvoiceData("customFields", values)
+            }
+            dynamicFields={invoiceData.dynamicFields || []}
+            onDynamicFieldsChange={(fields) =>
+              updateInvoiceData("dynamicFields", fields)
             }
           />
         );

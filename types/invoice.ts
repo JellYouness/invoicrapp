@@ -1,3 +1,5 @@
+import { CustomField } from './settings';
+
 export interface InvoiceTheme {
   id: string;
   name: string;
@@ -64,4 +66,5 @@ export interface InvoiceData {
   paymentTerms: string;
   taxRate?: number;
   customFields?: CustomFieldValue[];
+  dynamicFields?: CustomField[];
 }

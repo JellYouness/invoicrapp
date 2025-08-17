@@ -13,6 +13,8 @@ interface CustomFieldsProps {
   customFields: CustomField[];
   customFieldValues: CustomFieldValue[];
   onCustomFieldValuesChange: (values: CustomFieldValue[]) => void;
+  dynamicFields: CustomField[];
+  onDynamicFieldsChange: (fields: CustomField[]) => void;
 }
 
 interface DynamicCustomField extends CustomField {
@@ -23,8 +25,9 @@ export function CustomFields({
   customFields,
   customFieldValues,
   onCustomFieldValuesChange,
+  dynamicFields,
+  onDynamicFieldsChange,
 }: CustomFieldsProps) {
-  const [dynamicFields, setDynamicFields] = useState<DynamicCustomField[]>([]);
   const [isAddingField, setIsAddingField] = useState(false);
   const [newField, setNewField] = useState({
     label: '',
@@ -36,8 +39,24 @@ export function CustomFields({
   // Combine pre-configured and dynamic fields
   const allFields: DynamicCustomField[] = [
     ...customFields.map(field => ({ ...field, isDynamic: false })),
-    ...dynamicFields
+    ...dynamicFields.map(field => ({ ...field, isDynamic: true }))
   ];
+
+  // Initialize all fields in customFieldValues when fields change
+  React.useEffect(() => {
+    const existingFieldIds = customFieldValues.map(cfv => cfv.fieldId);
+    const missingFields = allFields.filter(field => !existingFieldIds.includes(field.id));
+    
+    if (missingFields.length > 0) {
+      const newFieldValues: CustomFieldValue[] = missingFields.map(field => ({
+        fieldId: field.id,
+        value: field.defaultValue || '',
+        label: field.label
+      }));
+      
+      onCustomFieldValuesChange([...customFieldValues, ...newFieldValues]);
+    }
+  }, [allFields, customFieldValues, onCustomFieldValuesChange]);
 
   const updateFieldValue = (fieldId: string, value: string) => {
     const existingIndex = customFieldValues.findIndex(cfv => cfv.fieldId === fieldId);
@@ -86,16 +105,15 @@ export function CustomFields({
   const handleAddField = () => {
     if (!newField.label.trim()) return;
 
-    const dynamicField: DynamicCustomField = {
+    const dynamicField: CustomField = {
       id: `dynamic_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       label: newField.label.trim(),
       type: newField.type,
       required: newField.required,
-      defaultValue: newField.defaultValue,
-      isDynamic: true
+      defaultValue: newField.defaultValue
     };
 
-    setDynamicFields(prev => [...prev, dynamicField]);
+    onDynamicFieldsChange([...dynamicFields, dynamicField]);
     
     // Reset form
     setNewField({
@@ -109,7 +127,8 @@ export function CustomFields({
 
   const handleRemoveField = (fieldId: string) => {
     // Remove from dynamic fields
-    setDynamicFields(prev => prev.filter(field => field.id !== fieldId));
+    const updatedDynamicFields = dynamicFields.filter(field => field.id !== fieldId);
+    onDynamicFieldsChange(updatedDynamicFields);
     
     // Remove any values for this field
     const updatedValues = customFieldValues.filter(cfv => cfv.fieldId !== fieldId);
@@ -225,7 +244,7 @@ export function CustomFields({
                 </div>
                 
                 <div>
-                  <Label htmlFor="new-field-default" className="text-sm">Default Value</Label>
+                  <Label htmlFor="new-field-default" className="text-sm">Value</Label>
                   <Input
                     id="new-field-default"
                     value={newField.defaultValue}
@@ -236,17 +255,7 @@ export function CustomFields({
                 </div>
               </div>
               
-              <div className="flex items-center justify-between">
-                <label className="flex items-center gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    checked={newField.required}
-                    onChange={(e) => setNewField(prev => ({ ...prev, required: e.target.checked }))}
-                    className="rounded"
-                  />
-                  Required field
-                </label>
-                
+              <div className="flex items-center justify-end">                
                 <Button
                   type="button"
                   size="sm"
@@ -275,6 +284,19 @@ export function CustomFields({
               Add Your First Field
             </Button>
           </div>
+        )}
+
+        {/* Add field button when fields exist */}
+        {allFields.length > 0 && !isAddingField && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => setIsAddingField(true)}
+            className="w-full flex items-center gap-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add Another Field
+          </Button>
         )}
 
         {/* Info tip */}
