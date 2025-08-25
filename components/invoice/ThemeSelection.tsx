@@ -69,16 +69,18 @@ export const ThemeSelection = ({
       <div className="text-center">
         <div className="flex items-center justify-center gap-2 lg:mb-2">
           <Palette className="w-6 h-6 text-primary" />
-          <h2 className="text-lg md:text-xl lg:text-2xl font-bold">Choose Your Invoice Theme</h2>
+          <h2 className="text-lg md:text-xl lg:text-2xl font-bold">
+            Choose Your Invoice Theme
+          </h2>
         </div>
         {/* <p className="text-muted-foreground">Select a professional design for your invoices</p> */}
       </div>
 
-      <Card className="grid md:grid-cols-4 gap-6 overflow-y-auto p-6 bg-muted/90 rounded-lg h-[90%]">
+      <Card className="grid md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-6 overflow-y-auto p-6 bg-muted/90 rounded-lg h-[90%]">
         {availableThemes.map((theme) => (
           <Card
             key={theme.id}
-            className={`relative p-3 cursor-pointer transition-all duration-300 hover:shadow-lg ${
+            className={`relative p-3 cursor-pointer transition-all duration-300 hover:shadow-lg h-60 ${
               selectedTheme.id === theme.id
                 ? "ring-2 ring-primary shadow-lg scale-105"
                 : "hover:shadow-md"
@@ -114,10 +116,28 @@ export const ThemeSelection = ({
                   }}
                 >
                   <div className="space-y-1">
-                    <div className="h-2 w-16 bg-white/90 rounded" />
-                    <div className="h-1 w-12 bg-white/60 rounded" />
+                    <div
+                      className={`h-2 w-16 rounded ${
+                        theme.preview?.headerText
+                          ? "bg-[" + theme.preview?.headerText + "]"
+                          : "bg-white/90"
+                      }`}
+                    />
+                    <div
+                      className={`h-1 w-12 rounded ${
+                        theme.preview?.headerText
+                          ? "bg-[" + theme.preview?.headerText + "]"
+                          : "bg-white/60"
+                      }`}
+                    />
                   </div>
-                  <div className="w-5 h-5 bg-white/80 rounded" />
+                  <div
+                    className={`w-5 h-5 rounded ${
+                      theme.preview?.headerText
+                        ? "bg-[" + theme.preview?.headerText + "]"
+                        : "bg-white/80"
+                    }`}
+                  />
                 </div>
 
                 {/* Company & Client Info */}

@@ -953,7 +953,7 @@ export const InvoicePreview = ({
       >
         <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
           {/* User/Company Information */}
-          <div className="text-left text-white/90 flex-1">
+          <div className="text-left flex-1">
             <div className="space-y-1">
               <p className="font-bold text-lg sm:text-xl lg:text-2xl">
                 {userSettings?.company_name || "Your Company Name"}
@@ -1271,7 +1271,7 @@ export const InvoicePreview = ({
                 >
                   <div className="flex justify-between items-start">
                     {/* User/Company Information */}
-                    <div className="text-left text-white/90">
+                    <div className="text-left">
                       <div className="space-y-1">
                         <p className="font-bold text-2xl">
                           {userSettings?.company_name || "Your Company Name"}

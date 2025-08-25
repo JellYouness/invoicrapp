@@ -561,7 +561,7 @@ export const InvoiceGenerator = ({
                         </p>
                       </div>
                       {index < steps.length - 1 && (
-                        <div className="absolute top-4 -right-1 w-3 h-0.5 bg-border z-10" />
+                        <div className="absolute top-4 -right-1 sm:-right-5 md:-right-8 w-3 sm:w-10 md:w-16 h-0.5 bg-border z-10" />
                       )}
                     </div>
                   ))}

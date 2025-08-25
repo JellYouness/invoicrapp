@@ -11,6 +11,7 @@ export interface InvoiceTheme {
     primary: string;
     secondary: string;
     accent: string;
+    headerText?: string;
   };
   styles: {
     primary: string;
