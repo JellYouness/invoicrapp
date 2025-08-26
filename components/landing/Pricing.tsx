@@ -82,8 +82,7 @@ const Pricing = ({ pricingPlans }: PricingProps) => {
             <span className="bg-gradient-to-r from-emerald-600 to-teal-600 bg-clip-text text-transparent block">Fits Your Needs</span>
           </h2>
           <p className="text-lg text-gray-600 max-w-4xl mx-auto leading-relaxed">
-            Start free and scale as you grow. All plans include our core features with 
-            <span className="font-semibold text-emerald-600"> 14-day money-back guarantee</span>.
+            Start free and scale as you grow.
           </p>
         </div>
 
