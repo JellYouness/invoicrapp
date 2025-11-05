@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/ui/Logo";
 import { useUsage } from "@/contexts/UsageContext";
+import { useAdmin } from "@/contexts/AdminContext";
 import {
   FileText,
   Users,
@@ -13,8 +14,10 @@ import {
   User,
   Plus,
   X,
+  Shield,
 } from "lucide-react";
 import { InvoiceUsageBar } from "./ui/InvoiceUsageBar";
+import Link from "next/link";
 
 interface SidebarItem {
   id: string;
@@ -37,6 +40,7 @@ export const DashboardSidebar = ({
   onClose,
 }: DashboardSidebarProps) => {
   const { usage } = useUsage();
+  const { isAdmin, loading: adminLoading } = useAdmin();
   const mainItems: SidebarItem[] = [
     {
       id: "invoices",
@@ -125,12 +129,11 @@ export const DashboardSidebar = ({
 
         {/* Main Navigation */}
         <nav className="px-4 py-6 space-y-2 flex-1">
-
           <div className="md:hidden mb-6">
             <InvoiceUsageBar
               current={usage?.current || 0}
               limit={usage?.limit || 0}
-              planType={usage?.planType || 'free'}
+              planType={usage?.planType || "free"}
             />
           </div>
 
@@ -157,8 +160,26 @@ export const DashboardSidebar = ({
           </div>
         </nav>
 
+        {/* Admin Section - Only show for admin users */}
+        {!adminLoading && isAdmin && (
+          <div className="px-4 py-2 border-t border-border">
+            <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+              Admin
+            </h2>
+            <Link href="/admin">
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-3 h-11 px-3 text-muted-foreground hover:text-foreground hover:bg-muted"
+              >
+                <Shield className="w-5 h-5" />
+                <span className="font-medium">Admin Dashboard</span>
+              </Button>
+            </Link>
+          </div>
+        )}
+
         {/* Bottom Section - Only show upgrade prompt for free plan users */}
-        {usage?.planType === 'free' && (
+        {usage?.planType === "free" && (
           <div className="p-4 border-t border-border">
             <div className="bg-gradient-to-r from-primary to-accent rounded-lg p-4 text-white">
               <h3 className="font-semibold text-sm mb-1">Upgrade to Pro</h3>

@@ -30,7 +30,10 @@ import { getThemeById } from "@/lib/invoice-themes";
 import { getEditingLogo } from "@/lib/logo-utils";
 import { supabase } from "@/integrations/supabase/client";
 import { calculateDueDate } from "@/lib/format-utils";
-import { checkUserSettingsConfigured, type SettingsValidationResult } from "@/lib/settings-validation";
+import {
+  checkUserSettingsConfigured,
+  type SettingsValidationResult,
+} from "@/lib/settings-validation";
 import type {
   InvoiceTheme,
   ClientInfo,
@@ -68,9 +71,10 @@ export const InvoiceGenerator = ({
   const [isNewClient, setIsNewClient] = useState(false);
   const [showBlockingDialog, setShowBlockingDialog] = useState(false);
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-  const [settingsValidation, setSettingsValidation] = useState<SettingsValidationResult | null>(null);
+  const [settingsValidation, setSettingsValidation] =
+    useState<SettingsValidationResult | null>(null);
   const { usage, refreshUsage } = useUsage();
-  const isLimitReached = usage ? usage.current >= usage.limit : false;
+  const isLimitReached = false; // SUBSCRIPTION SYSTEM DISABLED - Never show limit reached
   const router = useRouter();
 
   useEffect(() => {
@@ -80,33 +84,32 @@ export const InvoiceGenerator = ({
     }
   }, [isLimitReached]);
 
-
   // Initialize default invoice data with user settings
   useEffect(() => {
     const initializeInvoiceData = async () => {
       try {
-        console.log('Starting invoice initialization...');
+        console.log("Starting invoice initialization...");
         // Get current user
         const {
           data: { user },
         } = await supabase.auth.getUser();
-        console.log('User:', user?.id);
+        console.log("User:", user?.id);
 
         // Check user settings first (only for new invoices, not when editing)
         if (user && !editingInvoice) {
-          console.log('Checking user settings for user:', user.id);
+          console.log("Checking user settings for user:", user.id);
           const validation = await checkUserSettingsConfigured(user.id);
-          console.log('Settings validation result:', validation);
+          console.log("Settings validation result:", validation);
           setSettingsValidation(validation);
-          
+
           // Show settings dialog if critical fields are missing
           if (!validation.isValid) {
-            console.log('Settings invalid, showing dialog');
+            console.log("Settings invalid, showing dialog");
             setShowSettingsDialog(true);
           }
         }
 
-        console.log('Proceeding with invoice initialization...');
+        console.log("Proceeding with invoice initialization...");
 
         let defaultTheme = await getDefaultTheme();
         let invoiceNumber = `INV-${Date.now()}`;
@@ -256,7 +259,7 @@ export const InvoiceGenerator = ({
       };
 
       const savedClient = await saveClient(clientData);
-      
+
       if (savedClient) {
         showSuccess(
           "Client Saved!",
@@ -439,7 +442,7 @@ export const InvoiceGenerator = ({
 
   const handleContinueWithoutSettings = async () => {
     setShowSettingsDialog(false);
-    
+
     // Initialize invoice data even without complete settings
     try {
       const {
@@ -451,7 +454,9 @@ export const InvoiceGenerator = ({
       let defaultNotes = "";
 
       if (user) {
-        const userSettings = await SettingsService.getSettingsWithDefaults(user.id);
+        const userSettings = await SettingsService.getSettingsWithDefaults(
+          user.id
+        );
         setCustomFields(userSettings.custom_fields || []);
 
         if (userSettings.default_theme) {
@@ -748,9 +753,19 @@ export const InvoiceGenerator = ({
       <SettingsRequiredDialog
         open={showSettingsDialog && settingsValidation !== null}
         onOpenChange={setShowSettingsDialog}
-        validationResult={settingsValidation || { isValid: true, missingFields: [], criticalMissing: [] }}
+        validationResult={
+          settingsValidation || {
+            isValid: true,
+            missingFields: [],
+            criticalMissing: [],
+          }
+        }
         onGoToSettings={handleGoToSettings}
-        onContinueAnyway={settingsValidation && settingsValidation.criticalMissing.length === 0 ? handleContinueWithoutSettings : undefined}
+        onContinueAnyway={
+          settingsValidation && settingsValidation.criticalMissing.length === 0
+            ? handleContinueWithoutSettings
+            : undefined
+        }
       />
     </div>
   );

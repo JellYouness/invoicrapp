@@ -1,13 +1,13 @@
-import { supabase } from '../integrations/supabase/client';
+import { supabase } from "../integrations/supabase/client";
 
 // Type casting for subscriptions table until Supabase types are regenerated
-const subscriptionsTable = 'subscriptions' as any;
+const subscriptionsTable = "subscriptions" as any;
 
 export interface Subscription {
   id: string;
   user_id: string;
-  plan_type: 'free' | 'pro';
-  status: 'active' | 'cancelled' | 'expired';
+  plan_type: "free" | "pro";
+  status: "active" | "cancelled" | "expired";
   invoices_created_this_month: number;
   invoice_limit: number;
   usage_reset_date: string;
@@ -25,102 +25,85 @@ export interface UsageInfo {
   remaining: number;
   percentage: number;
   canCreate: boolean;
-  planType: 'free' | 'pro';
+  planType: "free" | "pro";
 }
 
 export class SubscriptionService {
   /**
    * Get user's subscription information
    */
-  static async getUserSubscription(userId: string): Promise<Subscription | null> {
+  static async getUserSubscription(
+    userId: string
+  ): Promise<Subscription | null> {
     try {
       const { data, error } = await (supabase as any)
         .from(subscriptionsTable)
-        .select('*')
-        .eq('user_id', userId)
+        .select("*")
+        .eq("user_id", userId)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      if (error && error.code !== "PGRST116") {
+        // PGRST116 = no rows returned
+        // Check if it's a "relation does not exist" error (table missing)
+        if (
+          error.message?.includes('relation "subscriptions" does not exist')
+        ) {
+          console.warn(
+            "Subscriptions table does not exist. Please run the migration."
+          );
+          return null;
+        }
         throw error;
       }
 
       return data as Subscription;
     } catch (error) {
-      console.error('Error fetching subscription:', error);
+      console.error("Error fetching subscription:", error);
+      // Handle database connection or table missing errors gracefully
+      if (
+        error instanceof Error &&
+        error.message?.includes('relation "subscriptions" does not exist')
+      ) {
+        console.warn(
+          "Subscriptions table does not exist. Please run the migration."
+        );
+      }
       return null;
     }
   }
 
   /**
    * Get user's current usage information
+   * DISABLED: Returns unlimited access for all users
    */
   static async getUserUsage(userId: string): Promise<UsageInfo> {
-    try {
-      let subscription = await this.getUserSubscription(userId);
-
-      // Create default free subscription if none exists
-      if (!subscription) {
-        subscription = await this.createFreeSubscription(userId);
-      }
-
-      const current = subscription.invoices_created_this_month;
-      const limit = subscription.plan_type === 'pro' ? Infinity : subscription.invoice_limit;
-      const remaining = subscription.plan_type === 'pro' ? Infinity : Math.max(0, limit - current);
-      const percentage = subscription.plan_type === 'pro' ? 0 : Math.min(100, (current / limit) * 100);
-      const canCreate = subscription.plan_type === 'pro' || current < limit;
-
-      return {
-        current,
-        limit: subscription.plan_type === 'pro' ? Infinity : limit,
-        remaining,
-        percentage,
-        canCreate,
-        planType: subscription.plan_type
-      };
-    } catch (error) {
-      console.error('Error getting user usage:', error);
-      // Return safe defaults
-      return {
-        current: 0,
-        limit: 8,
-        remaining: 8,
-        percentage: 0,
-        canCreate: true,
-        planType: 'free'
-      };
-    }
+    // Return unlimited access - subscription system disabled
+    return {
+      current: 0,
+      limit: Infinity,
+      remaining: Infinity,
+      percentage: 0,
+      canCreate: true,
+      planType: "pro", // Treat everyone as pro user
+    };
   }
 
   /**
    * Check if user can create an invoice
+   * DISABLED: Always returns true - no limits
    */
   static async canCreateInvoice(userId: string): Promise<boolean> {
-    try {
-      const { data, error } = await (supabase as any)
-        .rpc('can_create_invoice', { user_uuid: userId });
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error checking invoice creation permission:', error);
-      return false;
-    }
+    // Always allow invoice creation - subscription system disabled
+    return true;
   }
 
   /**
    * Increment user's invoice usage
+   * DISABLED: Always returns true - no tracking
    */
   static async incrementInvoiceUsage(userId: string): Promise<boolean> {
-    try {
-      const { data, error } = await (supabase as any)
-        .rpc('increment_invoice_usage', { user_uuid: userId });
-
-      if (error) throw error;
-      return data;
-    } catch (error) {
-      console.error('Error incrementing invoice usage:', error);
-      return false;
-    }
+    // No usage tracking - subscription system disabled
+    return true;
   }
 
   /**
@@ -132,10 +115,10 @@ export class SubscriptionService {
         .from(subscriptionsTable)
         .insert({
           user_id: userId,
-          plan_type: 'free',
-          status: 'active',
+          plan_type: "free",
+          status: "active",
           invoices_created_this_month: 0,
-          invoice_limit: 8
+          invoice_limit: 8,
         })
         .select()
         .single();
@@ -143,7 +126,29 @@ export class SubscriptionService {
       if (error) throw error;
       return data as Subscription;
     } catch (error) {
-      console.error('Error creating free subscription:', error);
+      console.error("Error creating free subscription:", error);
+      // If subscriptions table doesn't exist, return a default subscription object
+      if (
+        error instanceof Error &&
+        error.message?.includes('relation "subscriptions" does not exist')
+      ) {
+        console.warn(
+          "Subscriptions table does not exist. Returning default subscription."
+        );
+        return {
+          id: "default",
+          user_id: userId,
+          plan_type: "free",
+          status: "active",
+          invoices_created_this_month: 0,
+          invoice_limit: 8,
+          usage_reset_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0],
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+      }
       throw error;
     }
   }
@@ -152,8 +157,8 @@ export class SubscriptionService {
    * Update user's subscription plan
    */
   static async updateSubscriptionPlan(
-    userId: string, 
-    planType: 'free' | 'pro',
+    userId: string,
+    planType: "free" | "pro",
     stripeData?: {
       subscriptionId?: string;
       customerId?: string;
@@ -164,19 +169,19 @@ export class SubscriptionService {
     try {
       const updateData: any = {
         plan_type: planType,
-        status: 'active',
-        updated_at: new Date().toISOString()
+        status: "active",
+        updated_at: new Date().toISOString(),
       };
 
       // Set limits based on plan
-      if (planType === 'free') {
+      if (planType === "free") {
         updateData.invoice_limit = 8;
         // Clear Stripe data for free plan
         updateData.stripe_subscription_id = null;
         updateData.stripe_customer_id = null;
         updateData.current_period_start = null;
         updateData.current_period_end = null;
-      } else if (planType === 'pro') {
+      } else if (planType === "pro") {
         updateData.invoice_limit = 999999; // Effectively unlimited
         // Add Stripe data for pro plan
         if (stripeData) {
@@ -191,7 +196,7 @@ export class SubscriptionService {
         .from(subscriptionsTable)
         .upsert({
           user_id: userId,
-          ...updateData
+          ...updateData,
         })
         .select()
         .single();
@@ -199,7 +204,7 @@ export class SubscriptionService {
       if (error) throw error;
       return data as Subscription;
     } catch (error) {
-      console.error('Error updating subscription plan:', error);
+      console.error("Error updating subscription plan:", error);
       throw error;
     }
   }
@@ -207,21 +212,24 @@ export class SubscriptionService {
   /**
    * Update invoice limit for free plan (admin function)
    */
-  static async updateInvoiceLimit(userId: string, newLimit: number): Promise<boolean> {
+  static async updateInvoiceLimit(
+    userId: string,
+    newLimit: number
+  ): Promise<boolean> {
     try {
       const { error } = await (supabase as any)
         .from(subscriptionsTable)
         .update({
           invoice_limit: newLimit,
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         })
-        .eq('user_id', userId)
-        .eq('plan_type', 'free');
+        .eq("user_id", userId)
+        .eq("plan_type", "free");
 
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error updating invoice limit:', error);
+      console.error("Error updating invoice limit:", error);
       return false;
     }
   }
@@ -234,15 +242,15 @@ export class SubscriptionService {
       const { error } = await (supabase as any)
         .from(subscriptionsTable)
         .update({
-          status: 'cancelled',
-          updated_at: new Date().toISOString()
+          status: "cancelled",
+          updated_at: new Date().toISOString(),
         })
-        .eq('user_id', userId);
+        .eq("user_id", userId);
 
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error cancelling subscription:', error);
+      console.error("Error cancelling subscription:", error);
       return false;
     }
   }
@@ -252,11 +260,11 @@ export class SubscriptionService {
    */
   static async resetMonthlyUsage(): Promise<boolean> {
     try {
-      const { error } = await (supabase as any).rpc('reset_monthly_usage');
+      const { error } = await (supabase as any).rpc("reset_monthly_usage");
       if (error) throw error;
       return true;
     } catch (error) {
-      console.error('Error resetting monthly usage:', error);
+      console.error("Error resetting monthly usage:", error);
       return false;
     }
   }

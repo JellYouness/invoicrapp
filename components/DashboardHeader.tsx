@@ -45,7 +45,9 @@ export const DashboardHeader = ({
   const { usage, isLoading } = useUsage();
   const router = useRouter();
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
-  const [upgradePromptType, setUpgradePromptType] = useState<'warning' | 'limit-reached'>('warning');
+  const [upgradePromptType, setUpgradePromptType] = useState<
+    "warning" | "limit-reached"
+  >("warning");
 
   const handleSignOut = async () => {
     await signOut();
@@ -74,50 +76,50 @@ export const DashboardHeader = ({
     <header className="bg-card/95 backdrop-blur-sm border-b border-border px-4 sm:px-6 py-3 sticky top-0 z-50">
       <div className="flex flex-col gap-3">
         <div className="flex items-center justify-between">
-        {/* Left side - Menu button and Logo */}
-        <div className="flex items-center space-x-2 sm:space-x-4">
-          {/* Mobile Menu Button */}
-          {onMenuToggle && (
+          {/* Left side - Menu button and Logo */}
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            {/* Mobile Menu Button */}
+            {onMenuToggle && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="lg:hidden"
+                onClick={onMenuToggle}
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            )}
+
+            <Logo size="md" className="text-lg sm:text-xl" />
+          </div>
+
+          {/* Right side - Actions and user menu */}
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Usage Bar - Show to the left of New Invoice button */}
+            {usage && !isLoading && (
+              <div className="hidden md:block">
+                <InvoiceUsageBar
+                  current={usage.current}
+                  limit={usage.limit === Infinity ? 999 : usage.limit}
+                  planType={usage.planType}
+                  className="scale-90 origin-right"
+                />
+              </div>
+            )}
+
+            {/* New Invoice Button */}
             <Button
-              variant="ghost"
+              onClick={handleNewInvoice}
               size="sm"
-              className="lg:hidden"
-              onClick={onMenuToggle}
+              className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg transition-all duration-200 flex items-center gap-1 sm:gap-2"
             >
-              <Menu className="h-5 w-5" />
+              <Plus className="w-4 h-4" />
+              <span className="hidden lg:inline">New Invoice</span>
+              <span className="lg:hidden">New</span>
             </Button>
-          )}
 
-          <Logo size="md" className="text-lg sm:text-xl" />
-        </div>
-
-        {/* Right side - Actions and user menu */}
-        <div className="flex items-center space-x-2 sm:space-x-3">
-          {/* Usage Bar - Show to the left of New Invoice button */}
-          {usage && !isLoading && (
-            <div className="hidden md:block">
-              <InvoiceUsageBar
-                current={usage.current}
-                limit={usage.limit === Infinity ? 999 : usage.limit}
-                planType={usage.planType}
-                className="scale-90 origin-right"
-              />
-            </div>
-          )}
-
-          {/* New Invoice Button */}
-          <Button
-            onClick={handleNewInvoice}
-            size="sm"
-            className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-lg transition-all duration-200 flex items-center gap-1 sm:gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden lg:inline">New Invoice</span>
-            <span className="lg:hidden">New</span>
-          </Button>
-
-          {/* Upgrade to Pro Button - Hidden on mobile, only show for free users */}
-          {/* {usage && usage.planType === 'free' && (
+            {/* Upgrade to Pro Button - Hidden on mobile, only show for free users */}
+            {/* {usage && usage.planType === 'free' && (
             <Button
               variant="outline"
               size="sm"
@@ -132,117 +134,117 @@ export const DashboardHeader = ({
             </Button>
           )} */}
 
-          {/* Settings - Hidden on mobile, accessible via user menu */}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="hidden sm:flex hover:bg-accent/10 transition-colors"
-            onClick={() => onTabChange && onTabChange("settings")}
-          >
-            <Settings className="w-5 h-5 text-muted-foreground" />
-          </Button>
+            {/* Settings - Hidden on mobile, accessible via user menu */}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="hidden sm:flex hover:bg-accent/10 transition-colors"
+              onClick={() => onTabChange && onTabChange("settings")}
+            >
+              <Settings className="w-5 h-5 text-muted-foreground" />
+            </Button>
 
-          {/* User Menu */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="relative h-10 w-10 rounded-full hover:bg-accent/10 transition-colors"
-              >
-                <Avatar className="h-10 w-10">
-                  <AvatarImage src="/" alt="User" />
-                  <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
-                    {getUserInitials(
-                      user?.user_metadata?.full_name || user?.email
-                    )}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-64" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none">
-                    {user?.user_metadata?.full_name ||
-                      user?.email?.split("@")[0] ||
-                      "User"}
-                  </p>
-                  <p className="text-xs leading-none text-muted-foreground">
-                    {user?.email || "user@example.com"}
-                  </p>
-                  <div className="flex items-center gap-2 mt-2">
-                    {usage && (
-                      <Badge 
-                        variant="secondary" 
-                        className={`text-xs ${
-                          usage.planType === 'pro' 
-                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0' 
-                            : ''
-                        }`}
-                      >
-                        {usage.planType === 'pro' ? (
-                          <>
-                            <Crown className="w-3 h-3 mr-1" />
-                            Pro Plan
-                          </>
-                        ) : (
-                          'Free Plan'
-                        )}
-                      </Badge>
-                    )}
+            {/* User Menu */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="relative h-10 w-10 rounded-full hover:bg-accent/10 transition-colors"
+                >
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src="/" alt="User" />
+                    <AvatarFallback className="bg-primary text-primary-foreground font-semibold">
+                      {getUserInitials(
+                        user?.user_metadata?.full_name || user?.email
+                      )}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-64" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      {user?.user_metadata?.full_name ||
+                        user?.email?.split("@")[0] ||
+                        "User"}
+                    </p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user?.email || "user@example.com"}
+                    </p>
+                    <div className="flex items-center gap-2 mt-2">
+                      {usage && (
+                        <Badge
+                          variant="secondary"
+                          className={`text-xs ${
+                            usage.planType === "pro"
+                              ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0"
+                              : ""
+                          }`}
+                        >
+                          {usage.planType === "pro" ? (
+                            <>
+                              <Crown className="w-3 h-3 mr-1" />
+                              Pro Plan
+                            </>
+                          ) : (
+                            "Free Plan"
+                          )}
+                        </Badge>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="flex items-center gap-2 cursor-pointer"
-                onClick={() => onTabChange?.("profile")}
-              >
-                <User className="w-4 h-4" />
-                Profile
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                className="flex items-center gap-2 cursor-pointer"
-                onClick={() => onTabChange?.("settings")}
-              >
-                <Settings className="w-4 h-4" />
-                Settings
-              </DropdownMenuItem>
-              <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
-                <CreditCard className="w-4 h-4" />
-                Billing
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem
-                className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive"
-                onClick={handleSignOut}
-              >
-                <LogOut className="w-4 h-4" />
-                Log out
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="flex items-center gap-2 cursor-pointer"
+                  onClick={() => onTabChange?.("profile")}
+                >
+                  <User className="w-4 h-4" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="flex items-center gap-2 cursor-pointer"
+                  onClick={() => onTabChange?.("settings")}
+                >
+                  <Settings className="w-4 h-4" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center gap-2 cursor-pointer">
+                  <CreditCard className="w-4 h-4" />
+                  Billing
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="flex items-center gap-2 cursor-pointer text-destructive focus:text-destructive"
+                  onClick={handleSignOut}
+                >
+                  <LogOut className="w-4 h-4" />
+                  Log out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-        </div>
-        
-        {/* Upgrade Prompt */}
-        {usage && (
+
+        {/* Upgrade Prompt - DISABLED (subscription system disabled) */}
+        {false && usage && (
           <UpgradePrompt
             isOpen={showUpgradePrompt}
             onClose={() => setShowUpgradePrompt(false)}
             onUpgrade={() => {
               setShowUpgradePrompt(false);
               // TODO: Implement actual upgrade flow
-              console.log('Upgrade to Pro clicked');
+              console.log("Upgrade to Pro clicked");
             }}
             title={
-              upgradePromptType === 'limit-reached'
-                ? 'Invoice Limit Reached'
-                : 'Approaching Invoice Limit'
+              upgradePromptType === "limit-reached"
+                ? "Invoice Limit Reached"
+                : "Approaching Invoice Limit"
             }
             description={
-              upgradePromptType === 'limit-reached'
-                ? 'You have reached your monthly limit of 8 invoices. Upgrade to Pro for unlimited invoices and more features.'
+              upgradePromptType === "limit-reached"
+                ? "You have reached your monthly limit of 8 invoices. Upgrade to Pro for unlimited invoices and more features."
                 : `You have used ${usage.current} of your ${usage.limit} monthly invoices. Upgrade to Pro for unlimited invoices.`
             }
             currentUsage={usage.current}

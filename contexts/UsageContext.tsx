@@ -1,7 +1,13 @@
 "use client";
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { SubscriptionService, UsageInfo } from '@/lib/subscription-service';
-import { useAuth } from './AuthContext';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { SubscriptionService, UsageInfo } from "@/lib/subscription-service";
+import { useAuth } from "./AuthContext";
 
 interface UsageContextType {
   usage: UsageInfo | null;
@@ -14,7 +20,7 @@ const UsageContext = createContext<UsageContextType | undefined>(undefined);
 export const useUsage = () => {
   const context = useContext(UsageContext);
   if (context === undefined) {
-    throw new Error('useUsage must be used within a UsageProvider');
+    throw new Error("useUsage must be used within a UsageProvider");
   }
   return context;
 };
@@ -34,17 +40,18 @@ export const UsageProvider: React.FC<UsageProviderProps> = ({ children }) => {
       setIsLoading(false);
       return;
     }
-    
-    try {
-      setIsLoading(true);
-      const usageInfo = await SubscriptionService.getUserUsage(user.id);
-      setUsage(usageInfo);
-    } catch (error) {
-      console.error('Error loading usage:', error);
-      setUsage(null);
-    } finally {
-      setIsLoading(false);
-    }
+
+    // SUBSCRIPTION SYSTEM DISABLED - Always provide unlimited access
+    setIsLoading(true);
+    setUsage({
+      current: 0,
+      limit: Infinity,
+      remaining: Infinity,
+      percentage: 0,
+      canCreate: true,
+      planType: "pro", // Treat everyone as pro user
+    });
+    setIsLoading(false);
   };
 
   const refreshUsage = async () => {
@@ -62,8 +69,6 @@ export const UsageProvider: React.FC<UsageProviderProps> = ({ children }) => {
   };
 
   return (
-    <UsageContext.Provider value={value}>
-      {children}
-    </UsageContext.Provider>
+    <UsageContext.Provider value={value}>{children}</UsageContext.Provider>
   );
 };
