@@ -166,7 +166,7 @@ export const DashboardSidebar = ({
             <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
               Admin
             </h2>
-            <Link href="/admin">
+            <Link href="/dashboard/admin">
               <Button
                 variant="ghost"
                 className="w-full justify-start gap-3 h-11 px-3 text-muted-foreground hover:text-foreground hover:bg-muted"

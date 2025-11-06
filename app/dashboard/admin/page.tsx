@@ -5,9 +5,10 @@ export default function AdminPage() {
 }
 
 export const metadata = {
-  title: "Admin Dashboard - Invoice Wiz Craft",
+  title: "Admin Dashboard - Invoicr",
   description:
-    "Admin dashboard for managing users and monitoring app performance",
+    "Admin dashboard for managing users and monitoring app performance with Invoicr.",
 };
+
 
 

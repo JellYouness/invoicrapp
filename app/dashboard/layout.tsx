@@ -2,13 +2,9 @@ import type { Metadata } from "next";
 import DashboardLayoutClient from "./DashboardLayoutClient";
 
 export const metadata: Metadata = {
-  title: "Dashboard",
+  title: "Dashboard - Invoicr",
   description:
     "Manage your invoices, clients, and business analytics with Invoicr dashboard.",
-  robots: {
-    index: false, // Don't index dashboard pages
-    follow: false,
-  },
 };
 
 export default function DashboardLayout({
