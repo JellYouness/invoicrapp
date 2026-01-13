@@ -381,7 +381,7 @@ const Features = ({ features }: FeaturesProps) => {
                       <div className="w-3 h-3 bg-yellow-400 rounded-full"></div>
                       <div className="w-3 h-3 bg-green-400 rounded-full"></div>
                       <div className="flex-1 bg-white rounded ml-4 px-3 py-1">
-                        <div className="text-xs text-gray-500">invoicr.app/{feature.id}</div>
+                        <div className="text-xs text-gray-500">invoicrapp.com/{feature.id}</div>
                       </div>
                     </div>
                   </div>
