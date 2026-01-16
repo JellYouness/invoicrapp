@@ -60,7 +60,7 @@ const Hero = ({ companyLogos = [] }: HeroProps) => {
   }, [currentStep]);
 
   return (
-    <section className="relative min-h-screen flex items-center px-4 sm:px-6 py-16 overflow-hidden bg-transparent">
+    <section className="relative min-h-screen flex items-center px-4 sm:px-6 py-16 lg:py-0 overflow-hidden bg-transparent">
       {/* Animated background elements */}
       <div className="absolute top-20 left-10 w-64 h-64 bg-gradient-to-br from-emerald-400/20 to-teal-400/20 rounded-full blur-3xl animate-pulse"></div>
       <div className="absolute bottom-20 right-10 w-80 h-80 bg-gradient-to-br from-teal-400/20 to-emerald-400/20 rounded-full blur-3xl animate-pulse delay-1000"></div>

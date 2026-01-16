@@ -24,6 +24,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import GitHubStarsBadge from "@/components/ui/GitHubStarsBadge";
 
 const Header = () => {
   const router = useRouter();
@@ -55,6 +56,8 @@ const Header = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden sm:flex items-center space-x-3">
+            {/* GitHub Stars Badge */}
+            <GitHubStarsBadge className="hidden md:flex" />
             {/* Navigation Links */}
             <nav className="hidden sm:flex items-center space-x-8">
               <button
@@ -186,6 +189,10 @@ const Header = () => {
         {/* Enhanced Mobile Navigation */}
         {isMobileMenuOpen && (
           <div className="sm:hidden mt-6 pb-6 space-y-4 pt-6 absolute top-16 left-0 right-0 bg-background backdrop-blur-lg border-b border-border shadow-sm rounded-3xl px-4">
+            {/* GitHub Stars Badge - Mobile */}
+            <div className="flex justify-center mb-2">
+              <GitHubStarsBadge />
+            </div>
             {/* Mobile Navigation Links */}
             <div className="space-y-4 mb-2">
               <button
