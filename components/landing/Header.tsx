@@ -25,6 +25,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import GitHubStarsBadge from "@/components/ui/GitHubStarsBadge";
+import ProductHuntBadge from "@/components/ui/ProductHuntBadge";
 
 const Header = () => {
   const router = useRouter();
@@ -50,12 +51,14 @@ const Header = () => {
 
   return (
     <header className="bg-transparent sticky top-0 z-50 pt-5">
-      <div className="w-auto max-w-xs sm:max-w-lg md:max-w-2xl mx-auto bg-background backdrop-blur-lg border-b border-border shadow-2xl rounded-full px-4 sm:px-6 py-2 sm:py-4 relative">
+      <div className="w-auto max-w-xs sm:max-w-lg md:max-w-3xl mx-auto bg-background backdrop-blur-lg border-b border-border shadow-2xl rounded-full px-4 sm:px-6 py-2 sm:py-4 relative">
         <div className="flex justify-between items-center">
           <Logo size="md" className="text-lg sm:text-xl" />
 
           {/* Desktop Navigation */}
           <div className="hidden sm:flex items-center space-x-3">
+            {/* Product Hunt Badge */}
+            <ProductHuntBadge className="hidden md:block" />
             {/* GitHub Stars Badge */}
             <GitHubStarsBadge className="hidden md:flex" />
             {/* Navigation Links */}
@@ -192,6 +195,10 @@ const Header = () => {
             {/* GitHub Stars Badge - Mobile */}
             <div className="flex justify-center mb-2">
               <GitHubStarsBadge />
+            </div>
+            {/* Product Hunt Badge - Mobile */}
+            <div className="flex justify-center mb-2">
+              <ProductHuntBadge className="scale-90 origin-center" />
             </div>
             {/* Mobile Navigation Links */}
             <div className="space-y-4 mb-2">
