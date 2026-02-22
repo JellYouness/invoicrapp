@@ -58,7 +58,7 @@ const Header = () => {
           {/* Desktop Navigation */}
           <div className="hidden sm:flex items-center space-x-3">
             {/* Product Hunt Badge */}
-            <ProductHuntBadge className="hidden md:block" />
+            {/* <ProductHuntBadge className="hidden md:block" /> */}
             {/* GitHub Stars Badge */}
             <GitHubStarsBadge className="hidden md:flex" />
             {/* Navigation Links */}
