@@ -30,7 +30,7 @@ const Footer = () => {
           </p>
           <div className="flex items-center gap-4 flex-wrap justify-center">
             <GitHubStarsBadge />
-            <ProductHuntBadge className="scale-90 origin-center" />
+            {/* <ProductHuntBadge className="scale-90 origin-center" /> */}
             <div className="flex items-center gap-2 text-sm text-gray-500">
               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
               All systems operational
