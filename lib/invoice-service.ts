@@ -195,6 +195,7 @@ export const getUserInvoices = async (): Promise<SavedInvoice[]> => {
 export const getInvoiceById = async (
 	id: string,
 ): Promise<SavedInvoice | null> => {
+	// await new Promise((resolve) => setTimeout(resolve, 4000))
 	try {
 		const {
 			data: { user },
@@ -216,7 +217,6 @@ export const getInvoiceById = async (
 			return null
 		}
 
-		await new Promise((resolve) => setTimeout(resolve, 5000))
 		return data as SavedInvoice
 	} catch (error) {
 		console.error('Error fetching invoice:', error)
