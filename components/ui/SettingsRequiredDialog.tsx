@@ -1,5 +1,6 @@
 import { AlertTriangle, ArrowRight, Settings } from 'lucide-react'
 import Link from 'next/link'
+import type { SetStateAction } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -15,14 +16,14 @@ import type { SettingsValidationResult } from '@/lib/settings-validation'
 interface SettingsRequiredDialogProps {
 	open: boolean
 	onOpenChange: (open: boolean) => void
-	validationResult: SettingsValidationResult	
-	onContinueAnyway?: () => void
+	validationResult: SettingsValidationResult
+	onContinueAnyway?: (value: SetStateAction<boolean>) => void
 }
 
 export function SettingsRequiredDialog({
 	open,
 	onOpenChange,
-	validationResult,	
+	validationResult,
 	onContinueAnyway,
 }: SettingsRequiredDialogProps) {
 	const hasCriticalMissing = validationResult.criticalMissing.length > 0
@@ -126,7 +127,7 @@ export function SettingsRequiredDialog({
 					{!hasCriticalMissing && onContinueAnyway && (
 						<Button
 							className="text-sm"
-							onClick={onContinueAnyway}
+							// onClick={onContinueAnyway}
 							variant="outline"
 						>
 							Continue Anyway

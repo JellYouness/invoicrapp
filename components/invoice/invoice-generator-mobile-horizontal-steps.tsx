@@ -1,12 +1,8 @@
+import { steps } from '@/lib/invoice-utils'
+
 export default function InvoiceGeneratorMobileHorizontalSteps({
-	steps,
 	currentStep,
 }: {
-	steps: {
-		id: number
-		title: string
-		description: string
-	}[]
 	currentStep: number
 }) {
 	return (

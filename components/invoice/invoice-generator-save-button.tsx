@@ -1,6 +1,6 @@
 import { ArrowRight, CheckCircle, Save } from 'lucide-react'
 import router from 'next/router'
-import { useState, type Dispatch, type SetStateAction } from 'react'
+import { type Dispatch, type SetStateAction, useState } from 'react'
 import { showError, showSuccess } from '@/hooks/use-toast'
 import { supabase } from '@/integrations/supabase/client'
 import { type CreateClientData, saveClient } from '@/lib/client-service'
@@ -8,6 +8,7 @@ import {
 	convertInvoiceDataToSaveFormat,
 	saveInvoice,
 } from '@/lib/invoice-service'
+import { steps } from '@/lib/invoice-utils'
 import { SettingsService } from '@/lib/settings-service'
 import type { InvoiceData } from '@/types/invoice'
 import type { CustomField } from '@/types/settings'
@@ -20,7 +21,6 @@ export default function SaveButton({
 	invoiceData,
 	setIsSaved,
 	isSaved,
-	steps,
 	isNewClient,
 	customFields,
 }: {
@@ -30,11 +30,6 @@ export default function SaveButton({
 	invoiceData: InvoiceData
 	setIsSaved: Dispatch<SetStateAction<boolean>>
 	isSaved: boolean
-	steps: {
-		id: number
-		title: string
-		description: string
-	}[]
 	isNewClient: boolean
 	customFields: CustomField[]
 }) {

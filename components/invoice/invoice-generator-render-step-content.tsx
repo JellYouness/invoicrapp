@@ -75,8 +75,7 @@ export default function RenderStepContent({
 			return (
 				<InvoicePreview
 					invoiceData={invoiceData}
-					isSaved={isSaved}
-					onSaveStateChange={setIsSaved}
+					isSaved={isSaved}					
 					setIsSaved={setIsSaved}
 				/>
 			)

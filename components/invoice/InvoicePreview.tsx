@@ -35,14 +35,12 @@ interface InvoicePreviewProps {
 	invoiceData: InvoiceData
 	isSaved?: boolean
 	setIsSaved: Dispatch<SetStateAction<boolean>>
-	onSaveStateChange?: (saved: boolean) => void
 }
 
 export const InvoicePreview = ({
 	invoiceData,
 	isSaved = false,
-	setIsSaved,
-	onSaveStateChange,
+	setIsSaved,	
 }: InvoicePreviewProps) => {
 	const pdfRef = useRef<HTMLDivElement>(null)
 	const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -126,8 +124,7 @@ export const InvoicePreview = ({
 					}
 				}
 
-				setIsSaved(true)
-				onSaveStateChange?.(true)
+				setIsSaved("saved")				
 
 				showSuccess(
 					'Invoice Saved Successfully!',
