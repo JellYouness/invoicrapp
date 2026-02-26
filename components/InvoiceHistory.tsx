@@ -16,6 +16,7 @@ import {
 	User,
 	X,
 } from 'lucide-react'
+import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { InvoicePreview } from '@/components/invoice/InvoicePreview'
 import { Badge } from '@/components/ui/badge'
@@ -59,10 +60,10 @@ import {
 import { getThemeMetadataSync } from '@/lib/invoice-themes'
 import type { InvoiceData } from '@/types/invoice'
 
-interface InvoiceHistoryProps {
-	onEditInvoice?: (invoice: SavedInvoice) => void
-	onViewInvoice?: (invoice: SavedInvoice) => void
-}
+// interface InvoiceHistoryProps {
+// 	onEditInvoice?: (invoice: SavedInvoice) => void
+// 	onViewInvoice?: (invoice: SavedInvoice) => void
+// }
 
 const statusColors = {
 	draft: 'bg-gray-100 text-gray-800 border-gray-200',
@@ -80,10 +81,7 @@ const statusLabels = {
 	cancelled: 'Cancelled',
 }
 
-export const InvoiceHistory = ({
-	onEditInvoice,
-	onViewInvoice,
-}: InvoiceHistoryProps) => {
+export const InvoiceHistory = () => {
 	const [invoices, setInvoices] = useState<SavedInvoice[]>([])
 	const [loading, setLoading] = useState(true)
 	const [deletingId, setDeletingId] = useState<string | null>(null)
@@ -104,7 +102,7 @@ export const InvoiceHistory = ({
 		'all' | 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled'
 	>('all')
 	// Using enhanced toast helpers
-//TODO: use event effect to pass as a dep on the use effect that calls this
+	//TODO: use event effect to pass as a dep on the use effect that calls this
 	const loadInvoices = async () => {
 		try {
 			setLoading(true)
@@ -589,14 +587,15 @@ export const InvoiceHistory = ({
 													<Eye className="w-4 h-4 mr-2" />
 													View
 												</DropdownMenuItem>
-												<DropdownMenuItem
-													onClick={() =>
-														onEditInvoice?.(invoice)
-													}
+												<Link
+													href={`/dashboard/create?editId=${invoice.id}`}
 												>
-													<Edit className="w-4 h-4 mr-2" />
-													Edit
-												</DropdownMenuItem>
+													<DropdownMenuItem													
+													>
+														<Edit className="w-4 h-4 mr-2" />
+														Edit
+													</DropdownMenuItem>
+												</Link>
 												<DropdownMenuItem
 													onClick={() =>
 														handleStatusUpdate(
@@ -664,7 +663,7 @@ export const InvoiceHistory = ({
 							<InvoicePreview
 								invoiceData={convertToInvoiceData(
 									previewInvoice,
-								)}								
+								)}
 							/>
 						</div>
 					)}
