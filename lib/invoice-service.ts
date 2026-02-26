@@ -195,7 +195,7 @@ export const getUserInvoices = async (): Promise<SavedInvoice[]> => {
 export const getInvoiceById = async (
 	id: string,
 ): Promise<SavedInvoice | null> => {
-	// await new Promise((resolve) => setTimeout(resolve, 4000))
+	await new Promise((resolve) => setTimeout(resolve, 4000))
 	try {
 		const {
 			data: { user },

@@ -31,8 +31,7 @@ export default function InvoiceGeneratorFallback() {
 										</h2>
 									</div>
 								</div>
-
-								{/* Changed to flex items-center justify-center to center content */}
+								
 								<Card className="flex flex-1 items-center justify-center bg-muted/90 rounded-lg">
 									<div className="text-center">
 										<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />

@@ -109,24 +109,12 @@ export const InvoiceGenerator = ({
 		}
 	}, [])
 
-	// if (!invoiceData) {
-	// 	return (
-	// 		<div className="flex h-full items-center justify-center">
-	// 			<div className="text-center">
-	// 				<div className="mx-auto mb-4 h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-	// 				<p className="text-muted-foreground">
-	// 					Loading invoice generator...
-	// 				</p>
-	// 			</div>
-	// 		</div>
-	// 	)
-	// }
-
+	
 	return (
 		<div className="relative h-full">
 			<div className="mx-auto h-full">
 				<div
-					className={`flex h-full flex-col gap-4 lg:flex-row lg:gap-8 $isLimitReached ? 'pointer-events-none blur-sm' : ''`}
+					className={`flex h-full flex-col gap-4 lg:flex-row lg:gap-8 ${isLimitReached ? 'pointer-events-none blur-sm' : ''}`}
 				>
 					<div className="w-full lg:h-full lg:w-80 lg:flex-shrink-0">
 						<Card className="border-primary/30 bg-gradient-to-b from-card to-muted/20 px-1 pt-4 pb-1 shadow-lg lg:sticky lg:top-0 lg:flex lg:h-full lg:flex-col lg:justify-center lg:p-6">
@@ -145,7 +133,7 @@ export const InvoiceGenerator = ({
 					{/* Right Content Area */}
 					<div className="flex flex-1 flex-col overflow-y-auto lg:h-full">
 						{/* Step Content */}
-						<Card className="h-[85%] flex-1 border-primary/30 p-4 shadow-lg sm:p-6 lg:h-[90%] lg:p-8">
+						<Card className="flex flex-col h-[85%] flex-1 border-primary/30 p-4 shadow-lg sm:p-6 lg:h-[90%] lg:p-8">
 							<RenderStepContent
 								currentStep={currentStep}
 								customFields={settingsUser?.custom_fields || []}
@@ -182,7 +170,8 @@ export const InvoiceGenerator = ({
 										<SaveButton
 											currentStep={currentStep}
 											customFields={
-												settingsUser?.custom_fields || []
+												settingsUser?.custom_fields ||
+												[]
 											}
 											invoiceData={invoiceData}
 											isNewClient={isNewClient}
