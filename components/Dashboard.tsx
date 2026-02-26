@@ -60,20 +60,20 @@ export const Dashboard = () => {
     setActiveTab("create");
   };
 
-  const handleInvoiceSaved = () => {
-    setEditingInvoice(null);
-    setActiveTab("history");
-  };
+  // const handleInvoiceSaved = () => {
+  //   setEditingInvoice(null);
+  //   setActiveTab("history");
+  // };
 
   const renderContent = () => {
     switch (activeTab) {
-      case "create":
-        return (
-          <InvoiceGenerator
-            editingInvoice={editingInvoice}
-            onInvoiceSaved={handleInvoiceSaved}
-          />
-        );
+      // case "create":
+      //   return (
+      //     <InvoiceGenerator
+      //       editingInvoice={editingInvoice}
+      //       onInvoiceSaved={handleInvoiceSaved}
+      //     />
+      //   );
       case "history":
         return (
           <InvoiceHistory

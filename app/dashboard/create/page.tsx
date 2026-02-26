@@ -1,56 +1,49 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
+import InvoiceGeneratorFallback from '@/components/fallbacks/create-invoice-fallback'
 import { InvoiceGenerator } from '@/components/InvoiceGenerator'
+import { supabase } from '@/integrations/supabase/client'
 import { getInvoiceById } from '@/lib/invoice-service'
-import type { SavedInvoice } from '@/lib/invoice-service'
+import { getDefaultTheme, getThemeById } from '@/lib/invoice-themes'
+import { SettingsService } from '@/lib/settings-service'
+import { checkUserSettingsConfigured } from '@/lib/settings-validation'
 
-export default function CreateInvoicePage() {
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const [editingInvoice, setEditingInvoice] = useState<SavedInvoice | null>(null)
-  const [loadingInvoice, setLoadingInvoice] = useState(false)
+export default function CreateInvoicePage(
+	props: PageProps<'/dashboard/create'>,
+) {
+	const invoicePromise = props.searchParams.then(({ editId, viewId }) => {
+		const targetId = [editId, viewId].flat().filter(Boolean)[0]
+		return getInvoiceById(targetId)
+	})
 
-  const editId = searchParams.get('edit')
-  const viewId = searchParams.get('view')
-  const invoiceId = editId || viewId
+	const userPromise = supabase.auth.getUser()
 
-  useEffect(() => {
-    const loadInvoice = async () => {
-      if (invoiceId) {
-        setLoadingInvoice(true)
-        try {
-          const invoice = await getInvoiceById(invoiceId)
-          setEditingInvoice(invoice)
-        } catch (error) {
-          console.error('Error loading invoice:', error)
-          // If invoice not found, redirect to create page without params
-          router.replace('/dashboard/create')
-        } finally {
-          setLoadingInvoice(false)
-        }
-      }
-    }
+	const settingsValidationPromise = userPromise.then(async (data) => {
+		if (!data.data.user?.id) return
 
-    loadInvoice()
-  }, [invoiceId, router])
+		return checkUserSettingsConfigured(data.data.user?.id)
+	})
 
-  if (loadingInvoice) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Loading invoice...</p>
-        </div>
-      </div>
-    )
-  }
+	const settingsUserPromise = userPromise.then(async (data) => {
+		if (!data.data.user?.id) return
 
-  return (
-    <InvoiceGenerator
-      editingInvoice={editingInvoice}
-      onInvoiceSaved={() => null}
-    />
-  )
+		return SettingsService.getSettingsWithDefaults(data.data.user?.id)
+	})
+
+	const defaultThemePromise = settingsUserPromise.then(async (data) => {
+		if (!data?.default_theme || data.default_theme === undefined) {
+			return getDefaultTheme()
+		}
+		return getThemeById(data.default_theme)
+	})
+
+	return (
+		<Suspense fallback={<InvoiceGeneratorFallback />}>
+			<InvoiceGenerator
+				defaultThemePromise={defaultThemePromise}
+				editingInvoicePromise={invoicePromise}
+				settingsUserPromise={settingsUserPromise}
+				settingsValidationPromise={settingsValidationPromise}
+			/>
+		</Suspense>
+	)
 }

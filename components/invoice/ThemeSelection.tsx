@@ -6,7 +6,7 @@ import { getAllThemeMetadataSync, getThemeById } from "@/lib/invoice-themes";
 import { useEffect, useState } from "react";
 
 interface ThemeSelectionProps {
-  selectedTheme: InvoiceTheme;
+  selectedTheme?: InvoiceTheme;
   onThemeSelect: (theme: InvoiceTheme) => void;
 }
 
