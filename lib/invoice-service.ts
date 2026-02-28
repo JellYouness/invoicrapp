@@ -162,34 +162,34 @@ export const convertInvoiceDataToSaveFormat = (
 // 	}
 // }
 
-// Get all invoices for the current user
-export const getUserInvoices = async (): Promise<SavedInvoice[]> => {
-	try {
-		const {
-			data: { user },
-		} = await supabase.auth.getUser()
+// // Get all invoices for the current user
+// export const getUserInvoices = async (): Promise<SavedInvoice[]> => {
+// 	try {
+// 		const {
+// 			data: { user },
+// 		} = await supabase.auth.getUser()
 
-		if (!user) {
-			return []
-		}
+// 		if (!user) {
+// 			return []
+// 		}
 
-		const { data, error } = await (supabase as any)
-			.from('invoices')
-			.select('*')
-			.eq('user_id', user.id)
-			.order('created_at', { ascending: false })
+// 		const { data, error } = await (supabase as any)
+// 			.from('invoices')
+// 			.select('*')
+// 			.eq('user_id', user.id)
+// 			.order('created_at', { ascending: false })
 
-		if (error) {
-			console.error('Error fetching invoices:', error)
-			return []
-		}
+// 		if (error) {
+// 			console.error('Error fetching invoices:', error)
+// 			return []
+// 		}
 
-		return data as SavedInvoice[]
-	} catch (error) {
-		console.error('Error fetching invoices:', error)
-		return []
-	}
-}
+// 		return data as SavedInvoice[]
+// 	} catch (error) {
+// 		console.error('Error fetching invoices:', error)
+// 		return []
+// 	}
+// }
 
 // Update an existing invoice
 export const updateInvoice = async (

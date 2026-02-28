@@ -7,7 +7,7 @@ import { ClientManagement } from './ClientManagement'
 import { DashboardHeader } from './DashboardHeader'
 import { DashboardSidebar } from './DashboardSidebar'
 import { HelpSupport } from './HelpSupport'
-import { InvoiceHistory } from './InvoiceHistory'
+import InvoiceHistory from './InvoiceHistory'
 import { Profile } from './Profile'
 import { Settings } from './Settings'
 

@@ -1,3 +1,4 @@
+'use client'
 import { format } from 'date-fns'
 import {
 	ArrowUpDown,
@@ -9,7 +10,6 @@ import {
 	FileText,
 	Filter,
 	MoreVertical,
-	RefreshCcw,
 	Search,
 	Send,
 	Trash2,
@@ -17,11 +17,10 @@ import {
 	X,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { use, useState } from 'react'
 import { InvoicePreview } from '@/components/invoice/InvoicePreview'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import {
 	Dialog,
 	DialogContent,
@@ -53,7 +52,6 @@ import {
 import { showError, showSuccess } from '@/hooks/use-toast'
 import {
 	deleteInvoice,
-	getUserInvoices,
 	type SavedInvoice,
 	updateInvoiceStatus,
 } from '@/lib/invoice-service'
@@ -81,9 +79,13 @@ const statusLabels = {
 	cancelled: 'Cancelled',
 }
 
-export const InvoiceHistory = () => {
-	const [invoices, setInvoices] = useState<SavedInvoice[]>([])
-	const [loading, setLoading] = useState(true)
+export default function InvoiceHistory({
+	invoicesPromise,
+}: {
+	invoicesPromise: Promise<SavedInvoice[]>
+}) {
+	// const [invoices, setInvoices] = useState<SavedInvoice[]>([])
+	const invoices = use(invoicesPromise)
 	const [deletingId, setDeletingId] = useState<string | null>(null)
 	const [previewInvoice, setPreviewInvoice] = useState<SavedInvoice | null>(
 		null,
@@ -101,30 +103,12 @@ export const InvoiceHistory = () => {
 	const [filterBy, setFilterBy] = useState<
 		'all' | 'draft' | 'sent' | 'paid' | 'overdue' | 'cancelled'
 	>('all')
-	// Using enhanced toast helpers
-	//TODO: use event effect to pass as a dep on the use effect that calls this
-	const loadInvoices = async () => {
-		try {
-			setLoading(true)
-			const userInvoices = await getUserInvoices()
-			setInvoices(userInvoices)
-		} catch (error) {
-			console.error('Error loading invoices:', error)
-			showError(
-				'Error Loading Invoices',
-				'Failed to load your invoice history. Please try again.',
-			)
-		} finally {
-			setLoading(false)
-		}
-	}
 
 	const handleDeleteInvoice = async (id: string) => {
 		setDeletingId(id)
 		try {
 			const success = await deleteInvoice(id)
 			if (success) {
-				setInvoices((prev) => prev.filter((inv) => inv.id !== id))
 				showSuccess(
 					'Invoice Deleted',
 					'Invoice has been successfully deleted.',
@@ -153,11 +137,6 @@ export const InvoiceHistory = () => {
 		try {
 			const success = await updateInvoiceStatus(id, newStatus)
 			if (success) {
-				setInvoices((prev) =>
-					prev.map((inv) =>
-						inv.id === id ? { ...inv, status: newStatus } : inv,
-					),
-				)
 				showSuccess(
 					'Status Updated',
 					`Invoice status updated to ${statusLabels[newStatus]}.`,
@@ -261,8 +240,7 @@ export const InvoiceHistory = () => {
 						.toLowerCase()
 						.includes(searchLower) ||
 					invoice.client_name.toLowerCase().includes(searchLower) ||
-					(invoice.notes &&
-						invoice.notes.toLowerCase().includes(searchLower))
+					invoice.notes.toLowerCase().includes(searchLower)
 				)
 			}
 			return true
@@ -295,34 +273,6 @@ export const InvoiceHistory = () => {
 			return sortOrder === 'asc' ? comparison : -comparison
 		})
 
-	useEffect(() => {
-		loadInvoices()
-	}, [])
-
-	if (loading) {
-		return (
-			<div className="space-y-4">
-				<div className="flex items-center justify-between">
-					<h2 className="text-2xl font-bold">Invoices</h2>
-				</div>
-				<div className="grid gap-4">
-					{[1, 2, 3].map((i) => (
-						<Card className="animate-pulse" key={i}>
-							<CardContent className="p-6">
-								<div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
-								<div className="h-3 bg-gray-200 rounded w-1/2 mb-4"></div>
-								<div className="flex gap-2">
-									<div className="h-6 bg-gray-200 rounded w-16"></div>
-									<div className="h-6 bg-gray-200 rounded w-20"></div>
-								</div>
-							</CardContent>
-						</Card>
-					))}
-				</div>
-			</div>
-		)
-	}
-
 	return (
 		<div className="space-y-6 w-full">
 			<div className="flex items-center justify-between">
@@ -334,10 +284,11 @@ export const InvoiceHistory = () => {
 						Manage and track all your invoices in one place
 					</p>
 				</div>
-				<Button onClick={loadInvoices} size="sm" variant="outline">
+				{/* //TODO:maybe add something for a call back but with this set up we should need to revlidate here */}
+				{/* <Button onClick={loadInvoices} size="sm" variant="outline">
 					<RefreshCcw className="w-4 h-4 mr-2" />
 					Refresh
-				</Button>
+				</Button> */}
 			</div>
 
 			{/* Search and Filters */}
@@ -590,8 +541,7 @@ export const InvoiceHistory = () => {
 												<Link
 													href={`/dashboard/create?editId=${invoice.id}`}
 												>
-													<DropdownMenuItem													
-													>
+													<DropdownMenuItem>
 														<Edit className="w-4 h-4 mr-2" />
 														Edit
 													</DropdownMenuItem>

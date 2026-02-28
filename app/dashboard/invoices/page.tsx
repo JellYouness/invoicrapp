@@ -1,5 +1,12 @@
-import { InvoiceHistory } from '@/components/InvoiceHistory'
+import { Suspense } from 'react'
+import InvoiceHistory from '@/components/InvoiceHistory'
+import { getUserInvoices } from '@/lib/invoice-service-server'
 
 export default function InvoicesPage() {
-	return <InvoiceHistory />
+	const invoicesPromise = getUserInvoices()
+	return (
+		<Suspense>
+			<InvoiceHistory invoicesPromise={invoicesPromise} />
+		</Suspense>
+	)
 }

@@ -37,3 +37,35 @@ export const getInvoiceById = async (
 		return null
 	}
 }
+
+
+
+// Get all invoices for the current user
+export const getUserInvoices = async (): Promise<SavedInvoice[]> => {
+	try {
+		const supabaseServer = await createClient()
+		const {
+			data: { user },
+		} = await supabaseServer.auth.getUser()
+
+		if (!user) {
+			return []
+		}
+
+		const { data, error } = await (supabaseServer)
+			.from('invoices')
+			.select('*')
+			.eq('user_id', user.id)
+			.order('created_at', { ascending: false })
+
+		if (error) {
+			console.error('Error fetching invoices:', error)
+			return []
+		}
+
+		return data as SavedInvoice[]
+	} catch (error) {
+		console.error('Error fetching invoices:', error)
+		return []
+	}
+}
