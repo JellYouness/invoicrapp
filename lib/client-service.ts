@@ -172,50 +172,50 @@ export const updateClient = async (
 }
 
 // Delete a client (soft delete by setting is_active to false)
-export const deleteClient = async (
-	id: string,
-	hardDelete: boolean = false,
-): Promise<boolean> => {
-	try {
-		const {
-			data: { user },
-		} = await supabase.auth.getUser()
+// export const deleteClient = async (
+// 	id: string,
+// 	hardDelete: boolean = false,
+// ): Promise<boolean> => {
+// 	try {
+// 		const {
+// 			data: { user },
+// 		} = await supabase.auth.getUser()
 
-		if (!user) {
-			return false
-		}
+// 		if (!user) {
+// 			return false
+// 		}
 
-		if (hardDelete) {
-			const { error } = await (supabase as any)
-				.from('clients')
-				.delete()
-				.eq('id', id)
-				.eq('user_id', user.id)
+// 		if (hardDelete) {
+// 			const { error } = await (supabase as any)
+// 				.from('clients')
+// 				.delete()
+// 				.eq('id', id)
+// 				.eq('user_id', user.id)
 
-			if (error) {
-				console.error('Error deleting client:', error)
-				return false
-			}
-		} else {
-			// Soft delete
-			const { error } = await (supabase as any)
-				.from('clients')
-				.update({ is_active: false })
-				.eq('id', id)
-				.eq('user_id', user.id)
+// 			if (error) {
+// 				console.error('Error deleting client:', error)
+// 				return false
+// 			}
+// 		} else {
+// 			// Soft delete
+// 			const { error } = await (supabase as any)
+// 				.from('clients')
+// 				.update({ is_active: false })
+// 				.eq('id', id)
+// 				.eq('user_id', user.id)
 
-			if (error) {
-				console.error('Error deactivating client:', error)
-				return false
-			}
-		}
+// 			if (error) {
+// 				console.error('Error deactivating client:', error)
+// 				return false
+// 			}
+// 		}
 
-		return true
-	} catch (error) {
-		console.error('Error deleting client:', error)
-		return false
-	}
-}
+// 		return true
+// 	} catch (error) {
+// 		console.error('Error deleting client:', error)
+// 		return false
+// 	}
+// }
 
 // Reactivate a client
 export const reactivateClient = async (id: string): Promise<boolean> => {

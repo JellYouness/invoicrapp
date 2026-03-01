@@ -1,75 +1,17 @@
 'use client'
-import {
-	ArrowUpDown,
-	Building,
-	Edit,
-	Eye,
-	Filter,
-	Globe,
-	Mail,
-	MapPin,
-	MoreVertical,
-	Phone,
-	Plus,
-	Receipt,
-	Search,
-	Trash2,
-	Users,
-	X,
-} from 'lucide-react'
 import { use, useState } from 'react'
-import { InvoicePreview } from '@/components/invoice/InvoicePreview'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogFooter,
-	DialogHeader,
-	DialogTitle,
-	DialogTrigger,
-} from '@/components/ui/dialog'
-import {
-	DropdownMenu,
-	DropdownMenuContent,
-	DropdownMenuItem,
-	DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import {
-	Select,
-	SelectContent,
-	SelectItem,
-	SelectTrigger,
-	SelectValue,
-} from '@/components/ui/select'
-import {
-	Table,
-	TableBody,
-	TableCell,
-	TableHead,
-	TableHeader,
-	TableRow,
-} from '@/components/ui/table'
-import { Textarea } from '@/components/ui/textarea'
 import { showError, showSuccess } from '@/hooks/use-toast'
-import {
-	type Client,
-	deleteClient,
-	saveClient,
-	updateClient,
-} from '@/lib/client-service'
+import { type Client, saveClient, updateClient } from '@/lib/client-service'
 import { getInvoicesByClient, type SavedInvoice } from '@/lib/invoice-service'
-import { getThemeMetadataSync } from '@/lib/invoice-themes'
-import type { InvoiceData } from '@/types/invoice'
 import type { UserSettings } from '@/types/settings'
-import SelectedClientInvoices from './client-managment/selected-client-invoices'
+import AddEditClientFormButton from './client-management/add-edit-client-form-button'
+import ClientsInvoicesDialog from './client-management/client-invoices-dialog'
+import ClientsTable from './client-management/clients-table'
+import NoClientsPlaceholder from './client-management/no-clients-placeholder'
+import PreviewInvoiceDialog from './client-management/preview-invoice-dialog'
+import ClientFilters from './client-management/search-form'
 
 interface ClientManagementProps {
-	onSelectClient?: (client: Client) => void
-	selectedClientId?: string
 	showSelectMode?: boolean
 	clientsPromise: Promise<Client[] | null>
 	clientsInvoiceCountPromise: Promise<Record<string, number>>
@@ -84,8 +26,6 @@ interface ClientWithInvoices extends Client {
 export const ClientManagement = ({
 	clientsInvoiceCountPromise,
 	clientsPromise,
-	onSelectClient,
-	selectedClientId,
 	showSelectMode = false,
 	userSettingsPromise,
 }: ClientManagementProps) => {
@@ -101,17 +41,17 @@ export const ClientManagement = ({
 			invoiceCount: clientsInvoiceCount?.[client.name] || 0,
 		})) || []
 
-	// const [loading, setLoading] = useState(true)
-	const [searchTerm, setSearchTerm] = useState('')
-	const [isDialogOpen, setIsDialogOpen] = useState(false)
+	const [isDialogOpen, setIsDialogOpen] = useState<{
+		isDialogOpen: boolean
+		isEditing: boolean
+	}>({ isDialogOpen: false, isEditing: false })
 	const [editingClient, setEditingClient] = useState<Client | null>(null)
 	const [isSaving, setIsSaving] = useState(false)
-	const [deletingId, setDeletingId] = useState<string | null>(null)
 	const [selectedClientInvoices, setSelectedClientInvoices] = useState<
 		SavedInvoice[]
 	>([])
 	const [showInvoicesDialog, setShowInvoicesDialog] = useState(false)
-	const [loadingInvoices, setLoadingInvoices] = useState(false)
+	// const [loadingInvoices, setLoadingInvoices] = useState(false)
 	const [previewInvoice, setPreviewInvoice] = useState<SavedInvoice | null>(
 		null,
 	)
@@ -144,31 +84,6 @@ export const ClientManagement = ({
 		website: '',
 	})
 
-	// const handleSearch = async (term: string) => {
-	// 	setSearchTerm(term)
-	// 	if (term.trim()) {
-	// 		try {
-	// 			const searchResults = await searchClients(term)
-
-	// 			// Get invoice counts for search results
-	// 			const clientNames = searchResults.map((client) => client.name)
-	// 			const invoiceCounts =
-	// 				await getInvoiceCountsForClients(clientNames)
-
-	// 			const resultsWithCounts = searchResults.map((client) => ({
-	// 				...client,
-	// 				invoiceCount: invoiceCounts[client.name] || 0,
-	// 			}))
-
-	// 			setClients(resultsWithCounts)
-	// 		} catch (error) {
-	// 			console.error('Error searching clients:', error)
-	// 		}
-	// 	} else {
-	// 		loadClients()
-	// 	}
-	// }
-
 	const resetForm = () => {
 		setFormData({
 			name: '',
@@ -191,7 +106,7 @@ export const ClientManagement = ({
 			tax_number: client.tax_number || '',
 			website: client.website || '',
 		})
-		setIsDialogOpen(true)
+		setIsDialogOpen({ isDialogOpen: true, isEditing: true })
 	}
 
 	const handleSave = async () => {
@@ -202,7 +117,7 @@ export const ClientManagement = ({
 
 		setIsSaving(true)
 		try {
-			let result
+			let result: any
 			if (editingClient) {
 				result = await updateClient(editingClient.id, formData)
 			} else {
@@ -216,7 +131,7 @@ export const ClientManagement = ({
 						editingClient ? 'updated' : 'created'
 					} successfully.`,
 				)
-				setIsDialogOpen(false)
+				setIsDialogOpen({ isDialogOpen: false, isEditing: false })
 				resetForm()
 				// loadClients()
 			} else {
@@ -240,32 +155,8 @@ export const ClientManagement = ({
 		}
 	}
 
-	const handleDelete = async (id: string) => {
-		setDeletingId(id)
-		try {
-			const success = await deleteClient(id)
-			if (success) {
-				showSuccess(
-					'Client Deactivated',
-					'Client has been deactivated successfully.',
-				)
-				// loadClients()
-			} else {
-				showError(
-					'Error',
-					'Failed to deactivate client. Please try again.',
-				)
-			}
-		} catch (error) {
-			console.error('Error deleting client:', error)
-			showError('Error', 'Failed to deactivate client. Please try again.')
-		} finally {
-			setDeletingId(null)
-		}
-	}
-
 	const handleViewInvoices = async (client: ClientWithInvoices) => {
-		setLoadingInvoices(true)
+		// setLoadingInvoices(true)
 		try {
 			const invoices = await getInvoicesByClient(client.name)
 			setSelectedClientInvoices(invoices)
@@ -277,67 +168,7 @@ export const ClientManagement = ({
 				'Failed to load invoices for this client.',
 			)
 		} finally {
-			setLoadingInvoices(false)
-		}
-	}
-
-	// Convert SavedInvoice to InvoiceData format for preview
-	const convertToInvoiceData = (savedInvoice: SavedInvoice): InvoiceData => {
-		const themeMetadata = getThemeMetadataSync(savedInvoice.theme_id)
-
-		// Create a minimal theme object for preview purposes
-		const previewTheme = {
-			id: savedInvoice.theme_id,
-			name: savedInvoice.theme_name,
-			color: themeMetadata?.id.split('-')[1] || 'blue',
-			description: themeMetadata?.description || 'Professional theme',
-			version: themeMetadata?.version || '1.0.0',
-			author: themeMetadata?.author || 'Invoicr',
-			preview: themeMetadata?.preview || {
-				primary: '#3b82f6',
-				secondary: '#dbeafe',
-				accent: '#1e40af',
-			},
-			styles: {
-				primary: `text-invoice-${themeMetadata?.id.split('-')[1] || 'blue'}`,
-				primaryLight: `bg-invoice-${
-					themeMetadata?.id.split('-')[1] || 'blue'
-				}-light`,
-				text: `text-invoice-${themeMetadata?.id.split('-')[1] || 'blue'}`,
-				background: `bg-invoice-${
-					themeMetadata?.id.split('-')[1] || 'blue'
-				}-light`,
-				border: `border-invoice-${themeMetadata?.id.split('-')[1] || 'blue'}`,
-			},
-			layout: {
-				headerStyle: 'classic',
-				footerStyle: 'minimal',
-				spacing: 'comfortable',
-				typography: {
-					headerFont: 'font-semibold',
-					bodyFont: 'font-normal',
-					accentFont: 'font-medium',
-				},
-			},
-			customCSS: '',
-		}
-
-		return {
-			theme: previewTheme,
-			client: {
-				name: savedInvoice.client_name,
-				address: savedInvoice.client_address,
-				email: savedInvoice.client_email || undefined,
-				phone: savedInvoice.client_phone || undefined,
-			},
-			items: savedInvoice.items,
-			invoiceNumber: savedInvoice.invoice_number,
-			date: savedInvoice.invoice_date,
-			dueDate: savedInvoice.due_date,
-			notes: savedInvoice.notes || undefined,
-			currency: 'USD',
-			paymentTerms: 'Net 30',
-			taxRate: 0,
+			// setLoadingInvoices(false)
 		}
 	}
 
@@ -394,469 +225,51 @@ export const ClientManagement = ({
 						{showSelectMode ? 'Select Client' : 'Client Management'}
 					</h2>
 					<p className="text-sm md:text-base text-gray-600 mt-1">
-						{showSelectMode
+						{!showSelectMode
 							? 'Choose a client for your invoice'
 							: 'Manage your client database'}
 					</p>
 				</div>
-				<Dialog onOpenChange={setIsDialogOpen} open={isDialogOpen}>
-					<DialogTrigger asChild>
-						<Button
-							className="flex items-center gap-2"
-							onClick={resetForm}
-						>
-							<Plus className="w-4 h-4" />
-							Add Client
-						</Button>
-					</DialogTrigger>
-					<DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-						<DialogHeader>
-							<DialogTitle>
-								{editingClient
-									? 'Edit Client'
-									: 'Add New Client'}
-							</DialogTitle>
-							<DialogDescription>
-								{editingClient
-									? 'Update client information'
-									: 'Create a new client profile'}
-							</DialogDescription>
-						</DialogHeader>
-
-						<div className="grid gap-4 py-4">
-							<div>
-								<Label htmlFor="name">Name *</Label>
-								<Input
-									id="name"
-									onChange={(e) =>
-										setFormData((prev) => ({
-											...prev,
-											name: e.target.value,
-										}))
-									}
-									placeholder="Client name"
-									value={formData.name}
-								/>
-							</div>
-
-							<div className="grid grid-cols-2 gap-4">
-								<div>
-									<Label htmlFor="email">Email</Label>
-									<Input
-										id="email"
-										onChange={(e) =>
-											setFormData((prev) => ({
-												...prev,
-												email: e.target.value,
-											}))
-										}
-										placeholder="client@example.com"
-										type="email"
-										value={formData.email}
-									/>
-								</div>
-								<div>
-									<Label htmlFor="phone">Phone</Label>
-									<Input
-										id="phone"
-										onChange={(e) =>
-											setFormData((prev) => ({
-												...prev,
-												phone: e.target.value,
-											}))
-										}
-										placeholder="+1 (555) 123-4567"
-										value={formData.phone}
-									/>
-								</div>
-							</div>
-
-							<div>
-								<Label htmlFor="address">Address</Label>
-								<Textarea
-									id="address"
-									onChange={(e) =>
-										setFormData((prev) => ({
-											...prev,
-											address: e.target.value,
-										}))
-									}
-									placeholder="123 Main Street\nSuite 100\nNew York, NY 10001\nUnited States"
-									rows={3}
-									value={formData.address}
-								/>
-							</div>
-
-							<div className="grid grid-cols-2 gap-4">
-								<div>
-									<Label htmlFor="tax_number">
-										Tax Number
-									</Label>
-									<Input
-										id="tax_number"
-										onChange={(e) =>
-											setFormData((prev) => ({
-												...prev,
-												tax_number: e.target.value,
-											}))
-										}
-										placeholder="Tax ID"
-										value={formData.tax_number}
-									/>
-								</div>
-								<div>
-									<Label htmlFor="website">Website</Label>
-									<Input
-										id="website"
-										onChange={(e) =>
-											setFormData((prev) => ({
-												...prev,
-												website: e.target.value,
-											}))
-										}
-										placeholder="https://example.com"
-										value={formData.website}
-									/>
-								</div>
-							</div>
-						</div>
-
-						<DialogFooter className="gap-2">
-							<Button
-								onClick={() => setIsDialogOpen(false)}
-								variant="outline"
-							>
-								Cancel
-							</Button>
-							<Button disabled={isSaving} onClick={handleSave}>
-								{isSaving
-									? 'Saving...'
-									: editingClient
-										? 'Update'
-										: 'Create'}
-							</Button>
-						</DialogFooter>
-					</DialogContent>
-				</Dialog>
+				<AddEditClientFormButton
+					formData={formData}
+					handleSave={handleSave}
+					isDialogOpen={isDialogOpen}
+					isSaving={isSaving}
+					resetForm={resetForm}
+					setFormData={setFormData}
+					setIsDialogOpen={setIsDialogOpen}
+				/>
 			</div>
-
 			{/* Search and Filters */}
-			<div className="flex flex-col sm:flex-row gap-4">
-				<div className="relative flex-1">
-					<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-					<Input
-						className="pl-10"
-						// onChange={(e) => handleSearch(e.target.value)}
-						placeholder="Search clients by name, company, or email..."
-						value={searchTerm}
-					/>
-				</div>
-				<div className="flex gap-2 items-center">
-					<Filter className="w-4 h-4 text-gray-500" />
-					<Select
-						onValueChange={(value: typeof filterBy) =>
-							setFilterBy(value)
-						}
-						value={filterBy}
-					>
-						<SelectTrigger className="w-48">
-							<SelectValue placeholder="Filter clients" />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="all">All Clients</SelectItem>
-							<SelectItem value="with-invoices">
-								With Invoices
-							</SelectItem>
-							<SelectItem value="no-invoices">
-								No Invoices
-							</SelectItem>
-						</SelectContent>
-					</Select>
-					{(filterBy !== 'all' || searchTerm) && (
-						<Button
-							className="h-8 w-8 p-0"
-							onClick={() => {
-								setFilterBy('all')
-								setSearchTerm('')
-								// loadClients()
-							}}
-							size="sm"
-							variant="ghost"
-						>
-							<X className="w-4 h-4" />
-						</Button>
-					)}
-				</div>
-			</div>
-
+			<ClientFilters />
 			{/* Clients Table */}
-			{filteredAndSortedClients.length === 0 ? (
-				<div className="text-center py-16">
-					<Users className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-					<h3 className="text-lg font-semibold text-gray-900 mb-2">
-						No Clients Found
-					</h3>
-					<p className="text-gray-600 mb-4">
-						{searchTerm || filterBy !== 'all'
-							? 'No clients match your current filters.'
-							: 'Start by adding your first client.'}
-					</p>
-				</div>
-			) : (
-				<div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-					<Table>
-						<TableHeader>
-							<TableRow className="bg-gray-50">
-								<TableHead className="w-8">
-									{/* Avatar */}
-								</TableHead>
-								<TableHead>
-									<Button
-										className="h-auto p-0 font-semibold hover:bg-transparent hover:text-primary"
-										onClick={() => handleSort('name')}
-										variant="ghost"
-									>
-										Name
-										<ArrowUpDown className="ml-1 h-4 w-4" />
-									</Button>
-								</TableHead>
-								<TableHead>
-									<Button
-										className="h-auto p-0 font-semibold hover:bg-transparent hover:text-primary"
-										onClick={() => handleSort('email')}
-										variant="ghost"
-									>
-										Email
-										<ArrowUpDown className="ml-1 h-4 w-4" />
-									</Button>
-								</TableHead>
-								<TableHead>Phone</TableHead>
-								<TableHead>Location</TableHead>
-								<TableHead>
-									<Button
-										className="h-auto p-0 font-semibold hover:bg-transparent hover:text-primary"
-										onClick={() =>
-											handleSort('invoiceCount')
-										}
-										variant="ghost"
-									>
-										Invoices
-										<ArrowUpDown className="ml-1 h-4 w-4" />
-									</Button>
-								</TableHead>
-								<TableHead className="w-20">Actions</TableHead>
-							</TableRow>
-						</TableHeader>
-						<TableBody>
-							{filteredAndSortedClients.map((client) => (
-								<TableRow
-									className={`cursor-pointer hover:bg-gray-50 ${
-										selectedClientId === client.id
-											? 'bg-blue-50'
-											: ''
-									}`}
-									key={client.id}
-									onClick={() =>
-										showSelectMode &&
-										onSelectClient?.(client)
-									}
-								>
-									<TableCell>
-										<div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
-											<Building className="w-4 h-4 text-white" />
-										</div>
-									</TableCell>
-									<TableCell>
-										<div className="font-semibold text-gray-900">
-											{client.name}
-										</div>
-										{client.website && (
-											<div className="text-sm text-gray-500 flex items-center gap-1">
-												<Globe className="w-3 h-3" />
-												{client.website.replace(
-													/^https?:\/\//,
-													'',
-												)}
-											</div>
-										)}
-									</TableCell>
-									<TableCell>
-										{client.email ? (
-											<div className="flex items-center gap-2">
-												<Mail className="w-4 h-4 text-gray-400" />
-												<span className="text-gray-900">
-													{client.email}
-												</span>
-											</div>
-										) : (
-											<span className="text-gray-400">
-												—
-											</span>
-										)}
-									</TableCell>
-									<TableCell>
-										{client.phone ? (
-											<div className="flex items-center gap-2">
-												<Phone className="w-4 h-4 text-gray-400" />
-												<span className="text-gray-900">
-													{client.phone}
-												</span>
-											</div>
-										) : (
-											<span className="text-gray-400">
-												—
-											</span>
-										)}
-									</TableCell>
-									<TableCell>
-										{client.address ? (
-											<div className="flex items-center gap-2">
-												<MapPin className="w-4 h-4 text-gray-400" />
-												<span className="text-gray-900 truncate max-w-32">
-													{
-														client.address.split(
-															'\n',
-														)[0]
-													}
-												</span>
-											</div>
-										) : (
-											<span className="text-gray-400">
-												—
-											</span>
-										)}
-									</TableCell>
-									<TableCell>
-										<Badge
-											className="flex items-center gap-1 w-fit"
-											variant="secondary"
-										>
-											<Receipt className="w-3 h-3" />
-											{client.invoiceCount || 0}
-										</Badge>
-									</TableCell>
-									<TableCell>
-										{!showSelectMode && (
-											<DropdownMenu>
-												<DropdownMenuTrigger asChild>
-													<Button
-														className="h-8 w-8 p-0"
-														onClick={(e) =>
-															e.stopPropagation()
-														}
-														size="sm"
-														variant="ghost"
-													>
-														<MoreVertical className="w-4 h-4" />
-													</Button>
-												</DropdownMenuTrigger>
-												<DropdownMenuContent align="end">
-													<DropdownMenuItem
-														onClick={() =>
-															handleViewInvoices(
-																client,
-															)
-														}
-													>
-														<Eye className="w-4 h-4 mr-2" />
-														View Invoices (
-														{client.invoiceCount ||
-															0}
-														)
-													</DropdownMenuItem>
-													<DropdownMenuItem
-														onClick={() =>
-															handleEdit(client)
-														}
-													>
-														<Edit className="w-4 h-4 mr-2" />
-														Edit
-													</DropdownMenuItem>
-													<DropdownMenuItem
-														className="text-red-600"
-														disabled={
-															deletingId ===
-															client.id
-														}
-														onClick={() =>
-															handleDelete(
-																client.id,
-															)
-														}
-													>
-														<Trash2 className="w-4 h-4 mr-2" />
-														{deletingId ===
-														client.id
-															? 'Deactivating...'
-															: 'Deactivate'}
-													</DropdownMenuItem>
-												</DropdownMenuContent>
-											</DropdownMenu>
-										)}
-									</TableCell>
-								</TableRow>
-							))}
-						</TableBody>
-					</Table>
-				</div>
-			)}
+			<NoClientsPlaceholder
+				filteredAndSortedClients={filteredAndSortedClients}
+			/>
+
+			<ClientsTable
+				filteredAndSortedClients={filteredAndSortedClients}
+				handleEdit={handleEdit}
+				handleSort={handleSort}
+				handleViewInvoices={handleViewInvoices}
+			/>
 
 			{/* Client Invoices Dialog */}
-			<Dialog
-				onOpenChange={setShowInvoicesDialog}
-				open={showInvoicesDialog}
-			>
-				<DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-					<DialogHeader>
-						<DialogTitle>
-							Invoices for{' '}
-							{selectedClientInvoices.length > 0
-								? selectedClientInvoices[0].client_name
-								: 'Client'}
-						</DialogTitle>
-						<DialogDescription>
-							View all invoices for this client
-						</DialogDescription>
-					</DialogHeader>
-
-					<div className="bg-white border border-gray-200 rounded-lg shadow-sm overflow-hidden">
-						<div className="divide-y divide-gray-200">
-							<SelectedClientInvoices
-								handlePreviewInvoice={handlePreviewInvoice}
-								invoices={selectedClientInvoices}
-							/>
-						</div>
-					</div>
-				</DialogContent>
-			</Dialog>
-
+			<ClientsInvoicesDialog
+				handlePreviewInvoice={handlePreviewInvoice}
+				selectedClientInvoices={selectedClientInvoices}
+				setShowInvoicesDialog={setShowInvoicesDialog}
+				showInvoicesDialog={showInvoicesDialog}
+			/>
 			{/* Invoice Preview Dialog */}
-			<Dialog
-				onOpenChange={setShowPreviewDialog}
-				open={showPreviewDialog}
-			>
-				<DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-					<DialogHeader>
-						<DialogTitle className="flex items-center gap-2">
-							<Eye className="w-5 h-5" />
-							Invoice Preview - {previewInvoice?.invoice_number}
-						</DialogTitle>
-					</DialogHeader>
-
-					{previewInvoice && (
-						<div className="mt-4">
-							<InvoicePreview
-								invoiceData={convertToInvoiceData(
-									previewInvoice,
-								)}
-								isSaved={isSaved}
-								setIsSaved={setIsSaved}
-								userSettings={userSettings}
-							/>
-						</div>
-					)}
-				</DialogContent>
-			</Dialog>
+			<PreviewInvoiceDialog
+				isSaved={isSaved}
+				previewInvoice={previewInvoice}
+				setIsSaved={setIsSaved}
+				setShowPreviewDialog={setShowPreviewDialog}
+				showPreviewDialog={showPreviewDialog}
+				userSettings={userSettings}
+			/>
 		</div>
 	)
 }
