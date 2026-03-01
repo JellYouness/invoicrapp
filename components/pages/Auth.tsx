@@ -1,11 +1,11 @@
 'use client'
 
-import type { Session, User } from '@supabase/supabase-js'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type React from 'react'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
+import { login } from '@/actions/login'
 import { Button } from '@/components/ui/button'
 import {
 	Card,
@@ -20,9 +20,7 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { showError, showSuccess } from '@/hooks/use-toast'
-import { createClient } from '@/integrations/supabase/client'
-import { login } from '@/actions/login'
-
+import { supabase } from '@/integrations/supabase/old/client'
 
 const Auth = () => {
 	// const [user, setUser] = useState<User | null>(null)
@@ -33,7 +31,6 @@ const Auth = () => {
 	const [fullName, setFullName] = useState('')
 	const router = useRouter()
 	// Using enhanced toast helpers
-
 
 	const handleSignUp = async (e: React.FormEvent) => {
 		e.preventDefault()
@@ -66,11 +63,11 @@ const Auth = () => {
 		}
 	}
 
-const handleSignIn = async (e: React.FormEvent) => {
-	e.preventDefault()
-	setLoading(true)
-	try {
-		const { data, error } = await login(email, password)
+	const handleSignIn = async (e: React.FormEvent) => {
+		e.preventDefault()
+		setLoading(true)
+		try {
+			const { data, error } = await login(email, password)
 
 			if (error) {
 				showError('Sign in failed', error.message)

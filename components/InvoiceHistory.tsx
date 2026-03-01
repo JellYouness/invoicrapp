@@ -18,7 +18,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { use, useState } from 'react'
-import { updateInvoiceStatus } from '@/actions/invoices'
+import { deleteInvoice, updateInvoiceStatus } from '@/actions/invoices'
 import { InvoicePreview } from '@/components/invoice/InvoicePreview'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -51,7 +51,7 @@ import {
 	TableRow,
 } from '@/components/ui/table'
 import { showError, showSuccess } from '@/hooks/use-toast'
-import { deleteInvoice, type SavedInvoice } from '@/lib/invoice-service'
+import type { SavedInvoice } from '@/lib/invoice-service'
 import { getThemeMetadataSync } from '@/lib/invoice-themes'
 import type { InvoiceData } from '@/types/invoice'
 

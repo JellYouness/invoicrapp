@@ -1,9 +1,9 @@
 'use server'
 
+import { revalidatePath } from 'next/cache'
 import { createClient } from '@/integrations/supabase/server/client'
 import type { CreateInvoiceData, SavedInvoice } from '@/lib/invoice-service'
 import { SubscriptionService } from '@/lib/subscription-service'
-import { revalidatePath } from 'next/cache'
 
 // Save a new invoice with usage tracking
 export const saveInvoice = async (
@@ -54,7 +54,6 @@ export const saveInvoice = async (
 	}
 }
 
-
 // Update invoice status
 export const updateInvoiceStatus = async (
 	id: string,
@@ -70,7 +69,7 @@ export const updateInvoiceStatus = async (
 			return false
 		}
 
-		const { error } = await (supabaseServer)
+		const { error } = await supabaseServer
 			.from('invoices')
 			.update({ status })
 			.eq('id', id)
@@ -80,10 +79,40 @@ export const updateInvoiceStatus = async (
 			console.error('Error updating invoice status:', error)
 			return false
 		}
-		revalidatePath("/dashboard/invoices")
+		revalidatePath('/dashboard/invoices')
 		return true
 	} catch (error) {
 		console.error('Error updating invoice status:', error)
+		return false
+	}
+}
+
+// Delete an invoice
+export const deleteInvoice = async (id: string): Promise<boolean> => {
+	try {
+		const supabaseServer = await createClient()
+		const {
+			data: { user },
+		} = await supabaseServer.auth.getUser()
+
+		if (!user) {
+			return false
+		}
+
+		const { error } = await supabaseServer
+			.from('invoices')
+			.delete()
+			.eq('id', id)
+			.eq('user_id', user.id)
+
+		if (error) {
+			console.error('Error deleting invoice:', error)
+			return false
+		}
+		revalidatePath('/dashboard/invoices')
+		return true
+	} catch (error) {
+		console.error('Error deleting invoice:', error)
 		return false
 	}
 }

@@ -225,34 +225,34 @@ export const updateInvoice = async (
 	}
 }
 
-// Delete an invoice
-export const deleteInvoice = async (id: string): Promise<boolean> => {
-	try {
-		const {
-			data: { user },
-		} = await supabase.auth.getUser()
+// // Delete an invoice
+// export const deleteInvoice = async (id: string): Promise<boolean> => {
+// 	try {
+// 		const {
+// 			data: { user },
+// 		} = await supabase.auth.getUser()
 
-		if (!user) {
-			return false
-		}
+// 		if (!user) {
+// 			return false
+// 		}
 
-		const { error } = await (supabase as any)
-			.from('invoices')
-			.delete()
-			.eq('id', id)
-			.eq('user_id', user.id)
+// 		const { error } = await (supabase as any)
+// 			.from('invoices')
+// 			.delete()
+// 			.eq('id', id)
+// 			.eq('user_id', user.id)
 
-		if (error) {
-			console.error('Error deleting invoice:', error)
-			return false
-		}
+// 		if (error) {
+// 			console.error('Error deleting invoice:', error)
+// 			return false
+// 		}
 
-		return true
-	} catch (error) {
-		console.error('Error deleting invoice:', error)
-		return false
-	}
-}
+// 		return true
+// 	} catch (error) {
+// 		console.error('Error deleting invoice:', error)
+// 		return false
+// 	}
+// }
 
 // // Update invoice status
 // export const updateInvoiceStatus = async (
