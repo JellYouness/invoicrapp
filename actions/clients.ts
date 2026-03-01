@@ -1,7 +1,6 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { supabase } from '@/integrations/supabase/old/client'
 import { createClient } from '@/integrations/supabase/server/client'
 import type { Client, CreateClientData } from '@/lib/client-service'
 
@@ -83,7 +82,7 @@ export const deleteClient = async (
 		const supabaseServer = await createClient()
 		const {
 			data: { user },
-		} = await supabase.auth.getUser()
+		} = await supabaseServer.auth.getUser()
 
 		if (!user) {
 			return false
