@@ -1,5 +1,5 @@
 import { createClient } from '@/integrations/supabase/server/client'
-import type { Client } from './client-service'
+import type { Client, ClientWithInvoiceCount } from './client-service'
 
 // Get all clients for the current user
 export const getUserClients = async (): Promise<Client[]> => {
@@ -33,7 +33,51 @@ export const getUserClients = async (): Promise<Client[]> => {
 	}
 }
 
+// Get all clients for the current user with invoice counts
+export const getUserClientsWithInvoiceCounts = async (
+	searchTerm?: string,
+): Promise<ClientWithInvoiceCount[]> => {
+	try {
+		const supabaseServer = await createClient()
+		const {
+			data: { user },
+		} = await supabaseServer.auth.getUser()
 
+		if (!user) return []
+
+		let query = supabaseServer
+			.from('clients')
+			.select(`
+                *,
+                invoiceCount:invoices(count)
+            `)
+			.eq('user_id', user.id)
+
+		// Add search logic if a term is provided
+		if (searchTerm && searchTerm.trim() !== '') {
+			const ilikeTerm = `%${searchTerm}%`
+			// .or() filters for matches in any of the specified columns
+			query = query.or(
+				`name.ilike.${ilikeTerm},email.ilike.${ilikeTerm},tax_number.ilike.${ilikeTerm},phone.ilike.${ilikeTerm}`,
+			)
+		}
+
+		const { data, error } = await query.order('name', { ascending: true })
+
+		if (error) {
+			console.error('Error fetching clients with counts:', error)
+			return []
+		}
+
+		return (data as any[]).map((client) => ({
+			...client,
+			invoiceCount: client.invoiceCount?.[0]?.count || 0,
+		}))
+	} catch (error) {
+		console.error('Unexpected error:', error)
+		return []
+	}
+}
 
 // Get invoice counts for all clients
 export const getInvoiceCountsForClients = async (
@@ -49,7 +93,7 @@ export const getInvoiceCountsForClients = async (
 			return {}
 		}
 
-		const { data, error } = await (supabaseServer)
+		const { data, error } = await supabaseServer
 			.from('invoices')
 			.select('client_name')
 			.eq('user_id', user.id)

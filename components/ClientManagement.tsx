@@ -2,7 +2,7 @@
 import { use, useState } from 'react'
 import { saveClient, updateClient } from '@/actions/clients'
 import { showError, showSuccess } from '@/hooks/use-toast'
-import type { Client } from '@/lib/client-service'
+import type { Client, ClientWithInvoiceCount } from '@/lib/client-service'
 import { getInvoicesByClient, type SavedInvoice } from '@/lib/invoice-service'
 import type { UserSettings } from '@/types/settings'
 import AddEditClientFormButton from './client-management/add-edit-client-form-button'
@@ -14,8 +14,7 @@ import ClientFilters from './client-management/search-form'
 
 interface ClientManagementProps {
 	showSelectMode?: boolean
-	clientsPromise: Promise<Client[] | null>
-	clientsInvoiceCountPromise: Promise<Record<string, number>>
+	clientsPromise: Promise<ClientWithInvoiceCount[] | null>
 	userSettingsPromise: Promise<UserSettings>
 	filterPromise: Promise<'with-invoices' | 'no-invoices' | 'all'>
 	sortPromise: Promise<'name' | 'email' | 'invoiceCount' | 'created_at'>
@@ -28,7 +27,6 @@ interface ClientWithInvoices extends Client {
 }
 
 export const ClientManagement = ({
-	clientsInvoiceCountPromise,
 	clientsPromise,
 	showSelectMode = false,
 	userSettingsPromise,
@@ -36,18 +34,11 @@ export const ClientManagement = ({
 	sortPromise,
 	orderPromise,
 }: ClientManagementProps) => {
-	const clientsWithOutCount = use(clientsPromise)
-	const clientsInvoiceCount = use(clientsInvoiceCountPromise)
+	const clients = use(clientsPromise) || []
 	const userSettings = use(userSettingsPromise)
 	const filterBy = use(filterPromise)
 	const sortBy = use(sortPromise)
 	const sortOrder = use(orderPromise)
-
-	const clients =
-		clientsWithOutCount?.map((client) => ({
-			...client,
-			invoiceCount: clientsInvoiceCount?.[client.name] || 0,
-		})) || []
 
 	const [isDialogOpen, setIsDialogOpen] = useState<{
 		isDialogOpen: boolean
@@ -59,7 +50,7 @@ export const ClientManagement = ({
 		SavedInvoice[]
 	>([])
 	const [showInvoicesDialog, setShowInvoicesDialog] = useState(false)
-	// const [loadingInvoices, setLoadingInvoices] = useState(false)
+	
 	const [previewInvoice, setPreviewInvoice] = useState<SavedInvoice | null>(
 		null,
 	)

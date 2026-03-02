@@ -1,18 +1,15 @@
 import { Suspense } from 'react'
 import { ClientManagement } from '@/components/ClientManagement'
 import ClientManagementFallback from '@/components/fallbacks/client-mnagement-fallback'
-import {
-	getInvoiceCountsForClients,
-	getUserClients,
-} from '@/lib/client-service-server'
+import { getUserClientsWithInvoiceCounts } from '@/lib/client-service-server'
 import { getUserSettings } from '@/lib/settings-service-server'
 
 export default function ClientsPage(props: PageProps<'/dashboard/clients'>) {
-	const clientsPromise = getUserClients()
-
-	const clientsInvoiceCountPromise = clientsPromise.then((clients) => {
-		const clientNames = clients?.map((client) => client.name) || []
-		return getInvoiceCountsForClients(clientNames)
+	const clientsPromise = props.searchParams.then((params) => {
+		const search = Array.isArray(params.search)
+			? params.search[0]
+			: (params.search ?? '')
+		return getUserClientsWithInvoiceCounts(search)
 	})
 
 	const userSettingsPromise = getUserSettings()
@@ -40,7 +37,6 @@ export default function ClientsPage(props: PageProps<'/dashboard/clients'>) {
 	return (
 		<Suspense fallback={<ClientManagementFallback />}>
 			<ClientManagement
-				clientsInvoiceCountPromise={clientsInvoiceCountPromise}
 				clientsPromise={clientsPromise}
 				filterPromise={filterPromise}
 				orderPromise={orderPromise}

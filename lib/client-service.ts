@@ -13,6 +13,10 @@ export interface Client {
 	updated_at: string
 }
 
+export interface ClientWithInvoiceCount extends Client {
+	invoiceCount: number
+}
+
 export interface CreateClientData {
 	name: string
 	address?: string
