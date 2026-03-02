@@ -49,8 +49,9 @@ const Toast = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Root> &
     VariantProps<typeof toastVariants> & {
       icon?: React.ReactNode
+      autoDismiss?: boolean
     }
->(({ className, variant, icon, children, ...props }, ref) => {
+>(({ className, variant, icon, children, autoDismiss, ...props }, ref) => {
   const defaultIcon = {
     success: <CheckCircle className="h-5 w-5 text-green-600" />,
     destructive: <AlertCircle className="h-5 w-5 text-red-600" />,

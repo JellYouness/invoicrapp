@@ -1,257 +1,221 @@
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/old/client'
 
 export interface Client {
-  id: string;
-  user_id: string;
-  name: string;
-  address?: string;
-  email?: string;
-  phone?: string;
-  tax_number?: string;
-  website?: string;
-  created_at: string;
-  updated_at: string;
+	id: string
+	user_id: string
+	name: string
+	address?: string
+	email?: string
+	phone?: string
+	tax_number?: string
+	website?: string
+	created_at: string
+	updated_at: string
+}
+
+export interface ClientWithInvoiceCount extends Client {
+	invoiceCount: number
 }
 
 export interface CreateClientData {
-  name: string;
-  address?: string;
-  email?: string;
-  phone?: string;
-  tax_number?: string;
-  website?: string;
+	name: string
+	address?: string
+	email?: string
+	phone?: string
+	tax_number?: string
+	website?: string
 }
 
 // Get formatted address from client data
 export const getClientAddress = (client: Client | CreateClientData): string => {
-  return client.address || '';
-};
+	return client.address || ''
+}
 
 // Convert legacy client info to new client format
 export const convertLegacyClientInfo = (clientInfo: {
-  name: string;
-  address: string;
-  email?: string;
-  phone?: string;
+	name: string
+	address: string
+	email?: string
+	phone?: string
 }): CreateClientData => {
-  return {
-    name: clientInfo.name,
-    address: clientInfo.address,
-    email: clientInfo.email,
-    phone: clientInfo.phone,
-  };
-};
+	return {
+		name: clientInfo.name,
+		address: clientInfo.address,
+		email: clientInfo.email,
+		phone: clientInfo.phone,
+	}
+}
 
-// Save a new client
-export const saveClient = async (clientData: CreateClientData): Promise<Client | null> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      throw new Error('User not authenticated');
-    }
-
-    const { data, error } = await (supabase as any)
-      .from('clients')
-      .insert({
-        user_id: user.id,
-        ...clientData
-      })
-      .select()
-      .single();
-
-    if (error) {
-      console.error('Error saving client:', error);
-      return null;
-    }
-
-    return data as Client;
-  } catch (error) {
-    console.error('Error saving client:', error);
-    return null;
-  }
-};
-
-// Get all clients for the current user
-export const getUserClients = async (): Promise<Client[]> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return [];
-    }
-
-    let query = (supabase as any)
-      .from('clients')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('name', { ascending: true });
-
-    const { data, error } = await query;
-
-    if (error) {
-      console.error('Error fetching clients:', error);
-      return [];
-    }
-
-    return data as Client[];
-  } catch (error) {
-    console.error('Error fetching clients:', error);
-    return [];
-  }
-};
 
 // Get a specific client by ID
 export const getClientById = async (id: string): Promise<Client | null> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return null;
-    }
+	try {
+		const {
+			data: { user },
+		} = await supabase.auth.getUser()
 
-    const { data, error } = await (supabase as any)
-      .from('clients')
-      .select('*')
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .single();
+		if (!user) {
+			return null
+		}
 
-    if (error) {
-      console.error('Error fetching client:', error);
-      return null;
-    }
+		const { data, error } = await (supabase as any)
+			.from('clients')
+			.select('*')
+			.eq('id', id)
+			.eq('user_id', user.id)
+			.single()
 
-    return data as Client;
-  } catch (error) {
-    console.error('Error fetching client:', error);
-    return null;
-  }
-};
+		if (error) {
+			console.error('Error fetching client:', error)
+			return null
+		}
 
-// Update an existing client
-export const updateClient = async (id: string, updates: Partial<CreateClientData>): Promise<Client | null> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return null;
-    }
+		return data as Client
+	} catch (error) {
+		console.error('Error fetching client:', error)
+		return null
+	}
+}
 
-    const { data, error } = await (supabase as any)
-      .from('clients')
-      .update(updates)
-      .eq('id', id)
-      .eq('user_id', user.id)
-      .select()
-      .single();
+// // Update an existing client
+// export const updateClient = async (
+// 	id: string,
+// 	updates: Partial<CreateClientData>,
+// ): Promise<Client | null> => {
+// 	try {
+// 		const {
+// 			data: { user },
+// 		} = await supabase.auth.getUser()
 
-    if (error) {
-      console.error('Error updating client:', error);
-      return null;
-    }
+// 		if (!user) {
+// 			return null
+// 		}
 
-    return data as Client;
-  } catch (error) {
-    console.error('Error updating client:', error);
-    return null;
-  }
-};
+// 		const { data, error } = await (supabase as any)
+// 			.from('clients')
+// 			.update(updates)
+// 			.eq('id', id)
+// 			.eq('user_id', user.id)
+// 			.select()
+// 			.single()
+
+// 		if (error) {
+// 			console.error('Error updating client:', error)
+// 			return null
+// 		}
+
+// 		return data as Client
+// 	} catch (error) {
+// 		console.error('Error updating client:', error)
+// 		return null
+// 	}
+// }
 
 // Delete a client (soft delete by setting is_active to false)
-export const deleteClient = async (id: string, hardDelete: boolean = false): Promise<boolean> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return false;
-    }
+// export const deleteClient = async (
+// 	id: string,
+// 	hardDelete: boolean = false,
+// ): Promise<boolean> => {
+// 	try {
+// 		const {
+// 			data: { user },
+// 		} = await supabase.auth.getUser()
 
-    if (hardDelete) {
-      const { error } = await (supabase as any)
-        .from('clients')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
+// 		if (!user) {
+// 			return false
+// 		}
 
-      if (error) {
-        console.error('Error deleting client:', error);
-        return false;
-      }
-    } else {
-      // Soft delete
-      const { error } = await (supabase as any)
-        .from('clients')
-        .update({ is_active: false })
-        .eq('id', id)
-        .eq('user_id', user.id);
+// 		if (hardDelete) {
+// 			const { error } = await (supabase as any)
+// 				.from('clients')
+// 				.delete()
+// 				.eq('id', id)
+// 				.eq('user_id', user.id)
 
-      if (error) {
-        console.error('Error deactivating client:', error);
-        return false;
-      }
-    }
+// 			if (error) {
+// 				console.error('Error deleting client:', error)
+// 				return false
+// 			}
+// 		} else {
+// 			// Soft delete
+// 			const { error } = await (supabase as any)
+// 				.from('clients')
+// 				.update({ is_active: false })
+// 				.eq('id', id)
+// 				.eq('user_id', user.id)
 
-    return true;
-  } catch (error) {
-    console.error('Error deleting client:', error);
-    return false;
-  }
-};
+// 			if (error) {
+// 				console.error('Error deactivating client:', error)
+// 				return false
+// 			}
+// 		}
+
+// 		return true
+// 	} catch (error) {
+// 		console.error('Error deleting client:', error)
+// 		return false
+// 	}
+// }
 
 // Reactivate a client
 export const reactivateClient = async (id: string): Promise<boolean> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return false;
-    }
+	try {
+		const {
+			data: { user },
+		} = await supabase.auth.getUser()
 
-    const { error } = await (supabase as any)
-      .from('clients')
-      .update({ is_active: true })
-      .eq('id', id)
-      .eq('user_id', user.id);
+		if (!user) {
+			return false
+		}
 
-    if (error) {
-      console.error('Error reactivating client:', error);
-      return false;
-    }
+		const { error } = await (supabase as any)
+			.from('clients')
+			.update({ is_active: true })
+			.eq('id', id)
+			.eq('user_id', user.id)
 
-    return true;
-  } catch (error) {
-    console.error('Error reactivating client:', error);
-    return false;
-  }
-};
+		if (error) {
+			console.error('Error reactivating client:', error)
+			return false
+		}
+
+		return true
+	} catch (error) {
+		console.error('Error reactivating client:', error)
+		return false
+	}
+}
 
 // Search clients by name or company
 export const searchClients = async (searchTerm: string): Promise<Client[]> => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    
-    if (!user) {
-      return [];
-    }
+	try {
+		const {
+			data: { user },
+		} = await supabase.auth.getUser()
 
-    const { data, error } = await (supabase as any)
-      .from('clients')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('is_active', true)
-      .or(`name.ilike.%${searchTerm}%,company_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`)
-      .order('name', { ascending: true })
-      .limit(10);
+		if (!user) {
+			return []
+		}
 
-    if (error) {
-      console.error('Error searching clients:', error);
-      return [];
-    }
+		const { data, error } = await (supabase as any)
+			.from('clients')
+			.select('*')
+			.eq('user_id', user.id)
+			.eq('is_active', true)
+			.or(
+				`name.ilike.%${searchTerm}%,company_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%`,
+			)
+			.order('name', { ascending: true })
+			.limit(10)
 
-    return data as Client[];
-  } catch (error) {
-    console.error('Error searching clients:', error);
-    return [];
-  }
-};
+		if (error) {
+			console.error('Error searching clients:', error)
+			return []
+		}
+
+		return data as Client[]
+	} catch (error) {
+		console.error('Error searching clients:', error)
+		return []
+	}
+}

@@ -1,16 +1,18 @@
-import type { Metadata } from "next";
-import InvoicesPageClient from "./InvoicesPageClient";
-
-export const metadata: Metadata = {
-  title: "Invoices",
-  description:
-    "Create, manage, and track your invoices with Invoicr. Generate professional invoices in minutes.",
-  robots: {
-    index: false,
-    follow: false,
-  },
-};
+import { Suspense } from 'react'
+import InvoicesFallback from '@/components/fallbacks/invoice-fallback'
+import InvoiceHistory from '@/components/InvoiceHistory'
+import { getUserInvoices } from '@/lib/invoice-service-server'
+import { getUserSettings } from '@/lib/settings-service-server'
 
 export default function InvoicesPage() {
-  return <InvoicesPageClient />;
+	const invoicesPromise = getUserInvoices()
+	const userSettingsPromise = getUserSettings()
+	return (
+		<Suspense fallback={<InvoicesFallback />}>
+			<InvoiceHistory
+				invoicesPromise={invoicesPromise}
+				userSettingsPromise={userSettingsPromise}
+			/>
+		</Suspense>
+	)
 }

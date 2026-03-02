@@ -34,6 +34,7 @@ export interface InvoiceTheme {
 }
 
 export interface ClientInfo {
+  id?: string;
   name: string;
   address: string;
   email?: string;

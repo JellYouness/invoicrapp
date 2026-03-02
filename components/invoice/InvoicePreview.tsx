@@ -1,243 +1,189 @@
-import { Card } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import html2canvas from 'html2canvas'
+import { jsPDF } from 'jspdf'
+import { Code, Download, Eye, Mail, Maximize2, Printer } from 'lucide-react'
 import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Download, Printer, Send, Eye, Maximize2, X, Mail, Code } from "lucide-react";
+	type Dispatch,
+	type SetStateAction,
+	useEffect,
+	useRef,
+	useState,
+} from 'react'
+import { saveInvoice } from '@/actions/invoices'
+import { Button } from '@/components/ui/button'
+import { Card } from '@/components/ui/card'
 import {
-  formatCurrency,
-  formatDate,
-  formatNumber,
-  calculateInvoiceTotals,
-} from "@/lib/format-utils";
-import { SettingsService } from "@/lib/settings-service";
-import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect, useRef } from "react";
-import { Textarea } from "@/components/ui/textarea";
-import type { InvoiceData } from "@/types/invoice";
-import type { SettingsFormData } from "@/types/settings";
-import { jsPDF } from "jspdf";
-import html2canvas from "html2canvas";
-import {
-  saveInvoice,
-  convertInvoiceDataToSaveFormat,
-} from "@/lib/invoice-service";
-import { showSuccess, showError } from "@/hooks/use-toast";
+	Dialog,
+	DialogContent,
+	DialogHeader,
+	DialogTitle,
+	DialogTrigger,
+} from '@/components/ui/dialog'
+import { Separator } from '@/components/ui/separator'
+import { Textarea } from '@/components/ui/textarea'
+import { showError, showSuccess } from '@/hooks/use-toast'
+import { formatCurrency, formatDate, formatNumber } from '@/lib/format-utils'
+import { convertInvoiceDataToSaveFormat } from '@/lib/invoice-service'
+import type { InvoiceData } from '@/types/invoice'
+import type { UserSettings } from '@/types/settings'
+
 // Theme styles are now included in the invoiceData.theme object
 interface InvoicePreviewProps {
-  invoiceData: InvoiceData;
-  onInvoiceSaved?: () => void;
-  isSaved?: boolean;
-  onSaveStateChange?: (saved: boolean) => void;
+	invoiceData: InvoiceData
+	isSaved?: boolean
+	setIsSaved?: Dispatch<SetStateAction<boolean>>
+	userSettings: UserSettings | null
 }
 
 export const InvoicePreview = ({
-  invoiceData,
-  onInvoiceSaved,
-  isSaved = false,
-  onSaveStateChange,
+	invoiceData,
+	isSaved = false,
+	setIsSaved,
+	userSettings,
 }: InvoicePreviewProps) => {
-  const pdfRef = useRef<HTMLDivElement>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [userSettings, setUserSettings] = useState<SettingsFormData | null>(
-    null
-  );
-  const [isSaving, setIsSaving] = useState(false);
-  const [hasBeenSaved, setHasBeenSaved] = useState(isSaved);
-  const [isHtmlDialogOpen, setIsHtmlDialogOpen] = useState(false);
-  const [htmlContent, setHtmlContent] = useState("");
-  // Using enhanced toast helpers
+	const pdfRef = useRef<HTMLDivElement>(null)
+	const [isDialogOpen, setIsDialogOpen] = useState(false)
+	const [isSaving, setIsSaving] = useState(false)
+	const [isHtmlDialogOpen, setIsHtmlDialogOpen] = useState(false)
+	const [htmlContent, setHtmlContent] = useState('')
 
-  // Update local save state when prop changes
-  useEffect(() => {
-    setHasBeenSaved(isSaved);
-  }, [isSaved]);
+	// Inject theme's custom CSS into the page
+	useEffect(() => {
+		const themeId = invoiceData.theme.id
+		const existingStyle = document.getElementById(`theme-${themeId}`)
 
-  // Load user settings for formatting
-  useEffect(() => {
-    const loadUserSettings = async () => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (user) {
-          const settings = await SettingsService.getSettingsWithDefaults(
-            user.id
-          );
-          setUserSettings(settings);
-        }
-      } catch (error) {
-        console.error("Error loading user settings:", error);
-      }
-    };
+		if (!existingStyle && invoiceData.theme.customCSS) {
+			const styleElement = document.createElement('style')
+			styleElement.id = `theme-${themeId}`
+			styleElement.textContent = invoiceData.theme.customCSS
+			document.head.appendChild(styleElement)
+		}
 
-    loadUserSettings();
-  }, []);
+		// Cleanup function to remove old theme styles
+		return () => {
+			const allThemeStyles = document.querySelectorAll('[id^="theme-"]')
+			allThemeStyles.forEach((style) => {
+				if (style.id !== `theme-${themeId}`) {
+					style.remove()
+				}
+			})
+		}
+	}, [invoiceData.theme.id, invoiceData.theme.customCSS])
 
-  // Inject theme's custom CSS into the page
-  useEffect(() => {
-    const themeId = invoiceData.theme.id;
-    const existingStyle = document.getElementById(`theme-${themeId}`);
+	const saveInvoiceIfNeeded = async (): Promise<boolean> => {
+		// If already saved, don't save again
+		if (isSaved) {
+			return true
+		}
 
-    if (!existingStyle && invoiceData.theme.customCSS) {
-      const styleElement = document.createElement("style");
-      styleElement.id = `theme-${themeId}`;
-      styleElement.textContent = invoiceData.theme.customCSS;
-      document.head.appendChild(styleElement);
-    }
+		setIsSaving(true)
+		try {
+			const invoiceToSave = convertInvoiceDataToSaveFormat(invoiceData)
+			const savedInvoice = await saveInvoice(invoiceToSave)
 
-    // Cleanup function to remove old theme styles
-    return () => {
-      const allThemeStyles = document.querySelectorAll('[id^="theme-"]');
-      allThemeStyles.forEach((style) => {
-        if (style.id !== `theme-${themeId}`) {
-          style.remove();
-        }
-      });
-    };
-  }, [invoiceData.theme.id, invoiceData.theme.customCSS]);
+			if (savedInvoice.success) {
+				setIsSaved(true)
 
-  const saveInvoiceIfNeeded = async (): Promise<boolean> => {
-    // If already saved, don't save again
-    if (hasBeenSaved) {
-      return true;
-    }
+				showSuccess(
+					'Invoice Saved Successfully!',
+					`Invoice ${invoiceData.invoiceNumber} has been saved to your history.`,
+				)
 
-    setIsSaving(true);
-    try {
-      const invoiceToSave = convertInvoiceDataToSaveFormat(invoiceData);
-      const savedInvoice = await saveInvoice(invoiceToSave);
+				return true
+			} else {
+				showError(
+					'Error Saving Invoice',
+					'There was an error saving your invoice. Please try again.',
+				)
+				return false
+			}
+		} catch (error) {
+			console.error('Error saving invoice:', error)
+			showError(
+				'Error Saving Invoice',
+				'There was an error saving your invoice. Please try again.',
+			)
+			return false
+		} finally {
+			setIsSaving(false)
+		}
+	}
 
-      if (savedInvoice) {
-        // Increment invoice counter in user settings after successful save
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (user) {
-          try {
-            const userSettings = await SettingsService.getSettingsWithDefaults(
-              user.id
-            );
-            await SettingsService.saveUserSettings(user.id, {
-              invoice_counter: userSettings.invoice_counter + 1,
-            });
-          } catch (error) {
-            console.error("Error updating invoice counter:", error);
-          }
-        }
+	const DownloadInvoice = async () => {
+		if (!pdfRef.current) return
 
-        setHasBeenSaved(true);
-        onSaveStateChange?.(true);
+		// Save invoice first
+		const saveSuccess = await saveInvoiceIfNeeded()
+		if (!saveSuccess) return
 
-        showSuccess(
-          "Invoice Saved Successfully!",
-          `Invoice ${invoiceData.invoiceNumber} has been saved to your history.`
-        );
+		try {
+			// Capture the element as a canvas with high quality
+			const canvas = await html2canvas(pdfRef.current, {
+				scale: 2, // Higher resolution
+				useCORS: true,
+				allowTaint: true,
+				backgroundColor: '#ffffff',
+			})
 
-        onInvoiceSaved?.();
-        return true;
-      } else {
-        showError(
-          "Error Saving Invoice",
-          "There was an error saving your invoice. Please try again."
-        );
-        return false;
-      }
-    } catch (error) {
-      console.error("Error saving invoice:", error);
-      showError(
-        "Error Saving Invoice",
-        "There was an error saving your invoice. Please try again."
-      );
-      return false;
-    } finally {
-      setIsSaving(false);
-    }
-  };
+			// Create PDF
+			const pdf = new jsPDF('p', 'mm', 'a4')
+			const imgData = canvas.toDataURL('image/png')
 
-  const DownloadInvoice = async () => {
-    if (!pdfRef.current) return;
+			// Calculate dimensions to fit the page
+			const pdfWidth = pdf.internal.pageSize.getWidth()
+			const pdfHeight = pdf.internal.pageSize.getHeight()
+			const imgWidth = canvas.width
+			const imgHeight = canvas.height
 
-    // Save invoice first
-    const saveSuccess = await saveInvoiceIfNeeded();
-    if (!saveSuccess) return;
+			// Calculate scaling to fit the page while maintaining aspect ratio
+			const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight)
+			const scaledWidth = imgWidth * ratio
+			const scaledHeight = imgHeight * ratio
 
-    try {
-      // Capture the element as a canvas with high quality
-      const canvas = await html2canvas(pdfRef.current, {
-        scale: 2, // Higher resolution
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-      });
+			// Center the image on the page
+			const x = (pdfWidth - scaledWidth) / 2
+			const y = (pdfHeight - scaledHeight) / 2
 
-      // Create PDF
-      const pdf = new jsPDF("p", "mm", "a4");
-      const imgData = canvas.toDataURL("image/png");
+			pdf.addImage(imgData, 'PNG', x, y, scaledWidth, scaledHeight)
+			pdf.save('invoice.pdf')
 
-      // Calculate dimensions to fit the page
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
+			showSuccess(
+				'Invoice Downloaded!',
+				`Invoice ${invoiceData.invoiceNumber} has been downloaded successfully.`,
+			)
+		} catch (error) {
+			console.error('Error generating PDF:', error)
+			showError(
+				'Download Failed',
+				'There was an error downloading your invoice. Please try again.',
+			)
+		}
+	}
 
-      // Calculate scaling to fit the page while maintaining aspect ratio
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const scaledWidth = imgWidth * ratio;
-      const scaledHeight = imgHeight * ratio;
+	const PrintInvoice = async () => {
+		if (!pdfRef.current) return
 
-      // Center the image on the page
-      const x = (pdfWidth - scaledWidth) / 2;
-      const y = (pdfHeight - scaledHeight) / 2;
+		// Save invoice first
+		const saveSuccess = await saveInvoiceIfNeeded()
+		if (!saveSuccess) return
 
-      pdf.addImage(imgData, "PNG", x, y, scaledWidth, scaledHeight);
-      pdf.save("invoice.pdf");
+		try {
+			// Use the same html2canvas approach as PDF generation for consistency
+			const canvas = await html2canvas(pdfRef.current, {
+				scale: 2,
+				useCORS: true,
+				allowTaint: true,
+				backgroundColor: '#ffffff',
+			})
 
-      showSuccess(
-        "Invoice Downloaded!",
-        `Invoice ${invoiceData.invoiceNumber} has been downloaded successfully.`
-      );
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      showError(
-        "Download Failed",
-        "There was an error downloading your invoice. Please try again."
-      );
-    }
-  };
+			// Create a new window for printing
+			const printWindow = window.open('', '_blank')
+			if (!printWindow) return
 
-  const PrintInvoice = async () => {
-    if (!pdfRef.current) return;
+			// Convert canvas to image
+			const imgData = canvas.toDataURL('image/png')
 
-    // Save invoice first
-    const saveSuccess = await saveInvoiceIfNeeded();
-    if (!saveSuccess) return;
-
-    try {
-      // Use the same html2canvas approach as PDF generation for consistency
-      const canvas = await html2canvas(pdfRef.current, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-      });
-
-      // Create a new window for printing
-      const printWindow = window.open("", "_blank");
-      if (!printWindow) return;
-
-      // Convert canvas to image
-      const imgData = canvas.toDataURL("image/png");
-
-      // Create print-optimized HTML with the captured image
-      printWindow.document.write(`
+			// Create print-optimized HTML with the captured image
+			printWindow.document.write(`
         <!DOCTYPE html>
         <html>
           <head>
@@ -285,141 +231,141 @@ export const InvoicePreview = ({
             <img src="${imgData}" alt="Invoice" class="print-image" />
           </body>
         </html>
-      `);
+      `)
 
-      printWindow.document.close();
+			printWindow.document.close()
 
-      // Wait for content to load, then print
-      printWindow.onload = () => {
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-      };
-    } catch (error) {
-      console.error("Error generating print preview:", error);
-    }
-  };
+			// Wait for content to load, then print
+			printWindow.onload = () => {
+				printWindow.focus()
+				printWindow.print()
+				printWindow.close()
+			}
+		} catch (error) {
+			console.error('Error generating print preview:', error)
+		}
+	}
 
-  const downloadedInvoiceNoDialog = async () => {
-    // Create a temporary hidden div with the full invoice content
-    const tempDiv = document.createElement("div");
-    tempDiv.style.position = "absolute";
-    tempDiv.style.left = "-9999px";
-    tempDiv.style.top = "-9999px";
-    tempDiv.style.width = "210mm";
-    tempDiv.style.minHeight = "297mm";
-    tempDiv.style.backgroundColor = "white";
-    document.body.appendChild(tempDiv);
+	const downloadedInvoiceNoDialog = async () => {
+		// Create a temporary hidden div with the full invoice content
+		const tempDiv = document.createElement('div')
+		tempDiv.style.position = 'absolute'
+		tempDiv.style.left = '-9999px'
+		tempDiv.style.top = '-9999px'
+		tempDiv.style.width = '210mm'
+		tempDiv.style.minHeight = '297mm'
+		tempDiv.style.backgroundColor = 'white'
+		document.body.appendChild(tempDiv)
 
-    // Render the full invoice content into the temp div
-    const { createRoot } = await import("react-dom/client");
-    const root = createRoot(tempDiv);
+		// Render the full invoice content into the temp div
+		const { createRoot } = await import('react-dom/client')
+		const root = createRoot(tempDiv)
 
-    await new Promise((resolve) => {
-      root.render(<FullInvoiceContent />);
-      setTimeout(resolve, 100); // Give it time to render
-    });
+		await new Promise((resolve) => {
+			root.render(<FullInvoiceContent />)
+			setTimeout(resolve, 100) // Give it time to render
+		})
 
-    // Save invoice first
-    const saveSuccess = await saveInvoiceIfNeeded();
-    if (!saveSuccess) {
-      document.body.removeChild(tempDiv);
-      return;
-    }
+		// Save invoice first
+		const saveSuccess = await saveInvoiceIfNeeded()
+		if (!saveSuccess) {
+			document.body.removeChild(tempDiv)
+			return
+		}
 
-    try {
-      // Capture the element as a canvas with high quality
-      const canvas = await html2canvas(tempDiv, {
-        scale: 2, // Higher resolution
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-      });
+		try {
+			// Capture the element as a canvas with high quality
+			const canvas = await html2canvas(tempDiv, {
+				scale: 2, // Higher resolution
+				useCORS: true,
+				allowTaint: true,
+				backgroundColor: '#ffffff',
+			})
 
-      // Create PDF
-      const pdf = new jsPDF("p", "mm", "a4");
-      const imgData = canvas.toDataURL("image/png");
+			// Create PDF
+			const pdf = new jsPDF('p', 'mm', 'a4')
+			const imgData = canvas.toDataURL('image/png')
 
-      // Calculate dimensions to fit the page
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = canvas.width;
-      const imgHeight = canvas.height;
+			// Calculate dimensions to fit the page
+			const pdfWidth = pdf.internal.pageSize.getWidth()
+			const pdfHeight = pdf.internal.pageSize.getHeight()
+			const imgWidth = canvas.width
+			const imgHeight = canvas.height
 
-      // Calculate scaling to fit the page while maintaining aspect ratio
-      const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
-      const scaledWidth = imgWidth * ratio;
-      const scaledHeight = imgHeight * ratio;
+			// Calculate scaling to fit the page while maintaining aspect ratio
+			const ratio = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight)
+			const scaledWidth = imgWidth * ratio
+			const scaledHeight = imgHeight * ratio
 
-      // Center the image on the page
-      const x = (pdfWidth - scaledWidth) / 2;
-      const y = (pdfHeight - scaledHeight) / 2;
+			// Center the image on the page
+			const x = (pdfWidth - scaledWidth) / 2
+			const y = (pdfHeight - scaledHeight) / 2
 
-      pdf.addImage(imgData, "PNG", x, y, scaledWidth, scaledHeight);
-      pdf.save("invoice.pdf");
+			pdf.addImage(imgData, 'PNG', x, y, scaledWidth, scaledHeight)
+			pdf.save('invoice.pdf')
 
-      showSuccess(
-        "Invoice Downloaded!",
-        `Invoice ${invoiceData.invoiceNumber} has been downloaded successfully.`
-      );
-    } catch (error) {
-      console.error("Error generating PDF:", error);
-      showError(
-        "Download Failed",
-        "There was an error downloading your invoice. Please try again."
-      );
-    } finally {
-      // Clean up
-      root.unmount();
-      document.body.removeChild(tempDiv);
-    }
-  };
+			showSuccess(
+				'Invoice Downloaded!',
+				`Invoice ${invoiceData.invoiceNumber} has been downloaded successfully.`,
+			)
+		} catch (error) {
+			console.error('Error generating PDF:', error)
+			showError(
+				'Download Failed',
+				'There was an error downloading your invoice. Please try again.',
+			)
+		} finally {
+			// Clean up
+			root.unmount()
+			document.body.removeChild(tempDiv)
+		}
+	}
 
-  const printInvoiceNoDialog = async () => {
-    // Create a temporary hidden div with the full invoice content
-    const tempDiv = document.createElement("div");
-    tempDiv.style.position = "absolute";
-    tempDiv.style.left = "-9999px";
-    tempDiv.style.top = "-9999px";
-    tempDiv.style.width = "210mm";
-    tempDiv.style.minHeight = "297mm";
-    tempDiv.style.backgroundColor = "white";
-    document.body.appendChild(tempDiv);
+	const printInvoiceNoDialog = async () => {
+		// Create a temporary hidden div with the full invoice content
+		const tempDiv = document.createElement('div')
+		tempDiv.style.position = 'absolute'
+		tempDiv.style.left = '-9999px'
+		tempDiv.style.top = '-9999px'
+		tempDiv.style.width = '210mm'
+		tempDiv.style.minHeight = '297mm'
+		tempDiv.style.backgroundColor = 'white'
+		document.body.appendChild(tempDiv)
 
-    // Render the full invoice content into the temp div
-    const { createRoot } = await import("react-dom/client");
-    const root = createRoot(tempDiv);
+		// Render the full invoice content into the temp div
+		const { createRoot } = await import('react-dom/client')
+		const root = createRoot(tempDiv)
 
-    await new Promise((resolve) => {
-      root.render(<FullInvoiceContent />);
-      setTimeout(resolve, 100); // Give it time to render
-    });
+		await new Promise((resolve) => {
+			root.render(<FullInvoiceContent />)
+			setTimeout(resolve, 100) // Give it time to render
+		})
 
-    // Save invoice first
-    const saveSuccess = await saveInvoiceIfNeeded();
-    if (!saveSuccess) {
-      document.body.removeChild(tempDiv);
-      return;
-    }
+		// Save invoice first
+		const saveSuccess = await saveInvoiceIfNeeded()
+		if (!saveSuccess) {
+			document.body.removeChild(tempDiv)
+			return
+		}
 
-    try {
-      // Use html2canvas on the temp div
-      const canvas = await html2canvas(tempDiv, {
-        scale: 2,
-        useCORS: true,
-        allowTaint: true,
-        backgroundColor: "#ffffff",
-      });
+		try {
+			// Use html2canvas on the temp div
+			const canvas = await html2canvas(tempDiv, {
+				scale: 2,
+				useCORS: true,
+				allowTaint: true,
+				backgroundColor: '#ffffff',
+			})
 
-      // Create a new window for printing
-      const printWindow = window.open("", "_blank");
-      if (!printWindow) return;
+			// Create a new window for printing
+			const printWindow = window.open('', '_blank')
+			if (!printWindow) return
 
-      // Convert canvas to image
-      const imgData = canvas.toDataURL("image/png");
+			// Convert canvas to image
+			const imgData = canvas.toDataURL('image/png')
 
-      // Create print-optimized HTML with the captured image
-      printWindow.document.write(`
+			// Create print-optimized HTML with the captured image
+			printWindow.document.write(`
         <!DOCTYPE html>
         <html>
           <head>
@@ -467,114 +413,116 @@ export const InvoicePreview = ({
             <img src="${imgData}" alt="Invoice" class="print-image" />
           </body>
         </html>
-      `);
+      `)
 
-      printWindow.document.close();
+			printWindow.document.close()
 
-      // Wait for content to load, then print
-      printWindow.onload = () => {
-        printWindow.focus();
-        printWindow.print();
-        printWindow.close();
-      };
-    } catch (error) {
-      console.error("Error generating print preview:", error);
-    } finally {
-      // Clean up
-      root.unmount();
-      document.body.removeChild(tempDiv);
-    }
-  };
+			// Wait for content to load, then print
+			printWindow.onload = () => {
+				printWindow.focus()
+				printWindow.print()
+				printWindow.close()
+			}
+		} catch (error) {
+			console.error('Error generating print preview:', error)
+		} finally {
+			// Clean up
+			root.unmount()
+			document.body.removeChild(tempDiv)
+		}
+	}
 
-  const exportInvoiceAsHTML = async () => {
-    // Save invoice first
-    const saveSuccess = await saveInvoiceIfNeeded();
-    if (!saveSuccess) return;
+	const exportInvoiceAsHTML = async () => {
+		// Save invoice first
+		const saveSuccess = await saveInvoiceIfNeeded()
+		if (!saveSuccess) return
 
-    try {
-      // Generate HTML content for email
-      const generatedHtml = generateEmailHTML();
-      setHtmlContent(generatedHtml);
-      setIsHtmlDialogOpen(true);
+		try {
+			// Generate HTML content for email
+			const generatedHtml = generateEmailHTML()
+			setHtmlContent(generatedHtml)
+			setIsHtmlDialogOpen(true)
 
-      // Commented out file download functionality
-      // const blob = new Blob([generatedHtml], { type: 'text/html' });
-      // const url = URL.createObjectURL(blob);
-      // const link = document.createElement('a');
-      // link.href = url;
-      // link.download = `invoice-${invoiceData.invoiceNumber}.html`;
-      // document.body.appendChild(link);
-      // link.click();
-      // document.body.removeChild(link);
-      // URL.revokeObjectURL(url);
+			// Commented out file download functionality
+			// const blob = new Blob([generatedHtml], { type: 'text/html' });
+			// const url = URL.createObjectURL(blob);
+			// const link = document.createElement('a');
+			// link.href = url;
+			// link.download = `invoice-${invoiceData.invoiceNumber}.html`;
+			// document.body.appendChild(link);
+			// link.click();
+			// document.body.removeChild(link);
+			// URL.revokeObjectURL(url);
 
-      showSuccess(
-        "HTML Code Generated!",
-        `Invoice ${invoiceData.invoiceNumber} HTML code is ready to copy.`
-      );
-    } catch (error) {
-      console.error("Error generating HTML:", error);
-      showError(
-        "Generation Failed",
-        "There was an error generating your invoice HTML. Please try again."
-      );
-    }
-  };
+			showSuccess(
+				'HTML Code Generated!',
+				`Invoice ${invoiceData.invoiceNumber} HTML code is ready to copy.`,
+			)
+		} catch (error) {
+			console.error('Error generating HTML:', error)
+			showError(
+				'Generation Failed',
+				'There was an error generating your invoice HTML. Please try again.',
+			)
+		}
+	}
 
-  const copyHtmlToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(htmlContent);
-      showSuccess(
-        "HTML Copied!",
-        "Invoice HTML code has been copied to your clipboard."
-      );
-    } catch (error) {
-      console.error("Error copying to clipboard:", error);
-      showError(
-        "Copy Failed",
-        "Could not copy to clipboard. Please select and copy manually."
-      );
-    }
-  };
+	const copyHtmlToClipboard = async () => {
+		try {
+			await navigator.clipboard.writeText(htmlContent)
+			showSuccess(
+				'HTML Copied!',
+				'Invoice HTML code has been copied to your clipboard.',
+			)
+		} catch (error) {
+			console.error('Error copying to clipboard:', error)
+			showError(
+				'Copy Failed',
+				'Could not copy to clipboard. Please select and copy manually.',
+			)
+		}
+	}
 
-  const downloadHtmlFile = () => {
-    try {
-      const blob = new Blob([htmlContent], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `invoice-${invoiceData.invoiceNumber}.html`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+	const downloadHtmlFile = () => {
+		try {
+			const blob = new Blob([htmlContent], { type: 'text/html' })
+			const url = URL.createObjectURL(blob)
+			const link = document.createElement('a')
+			link.href = url
+			link.download = `invoice-${invoiceData.invoiceNumber}.html`
+			document.body.appendChild(link)
+			link.click()
+			document.body.removeChild(link)
+			URL.revokeObjectURL(url)
 
-      showSuccess(
-        "HTML Downloaded!",
-        `Invoice ${invoiceData.invoiceNumber}.html has been downloaded.`
-      );
-    } catch (error) {
-      console.error("Error downloading HTML file:", error);
-      showError(
-        "Download Failed",
-        "There was an error downloading the HTML file. Please try again."
-      );
-    }
-  };
+			showSuccess(
+				'HTML Downloaded!',
+				`Invoice ${invoiceData.invoiceNumber}.html has been downloaded.`,
+			)
+		} catch (error) {
+			console.error('Error downloading HTML file:', error)
+			showError(
+				'Download Failed',
+				'There was an error downloading the HTML file. Please try again.',
+			)
+		}
+	}
 
-  const generateEmailHTML = () => {
-    const themeColors = {
-      'professional-blue': { primary: '#2563eb', light: '#dbeafe' },
-      'elegant-green': { primary: '#10b981', light: '#d1fae5' },
-      'creative-purple': { primary: '#7c3aed', light: '#e9d5ff' },
-      'vibrant-orange': { primary: '#f59e0b', light: '#fef3c7' },
-      'modern-teal': { primary: '#14b8a6', light: '#ccfbf1' },
-      'elegant-rose': { primary: '#f43f5e', light: '#fce7f3' }
-    };
+	const generateEmailHTML = () => {
+		const themeColors = {
+			'professional-blue': { primary: '#2563eb', light: '#dbeafe' },
+			'elegant-green': { primary: '#10b981', light: '#d1fae5' },
+			'creative-purple': { primary: '#7c3aed', light: '#e9d5ff' },
+			'vibrant-orange': { primary: '#f59e0b', light: '#fef3c7' },
+			'modern-teal': { primary: '#14b8a6', light: '#ccfbf1' },
+			'elegant-rose': { primary: '#f43f5e', light: '#fce7f3' },
+		}
 
-    const theme = themeColors[invoiceData.theme.id as keyof typeof themeColors] || themeColors['professional-blue'];
-    
-    return `<!DOCTYPE html>
+		const theme =
+			themeColors[invoiceData.theme.id as keyof typeof themeColors] ||
+			themeColors['professional-blue']
+
+		return `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -861,37 +809,55 @@ export const InvoicePreview = ({
                     </tr>
                 </thead>
                 <tbody>
-                    ${invoiceData.items.map(item => `
+                    ${invoiceData.items
+						.map(
+							(item) => `
                         <tr>
                             <td>${item.description.replace(/\n/g, '<br>')}</td>
                             <td>${userSettings ? formatNumber(item.quantity, userSettings.number_format) : item.quantity}</td>
                             <td>${userSettings ? formatCurrency(item.price, userSettings.default_currency) : `$${item.price.toFixed(2)}`}</td>
                             <td style="font-weight: 600;">${userSettings ? formatCurrency(item.quantity * item.price, userSettings.default_currency) : `$${(item.quantity * item.price).toFixed(2)}`}</td>
                         </tr>
-                    `).join('')}
+                    `,
+						)
+						.join('')}
                 </tbody>
             </table>
             
             <div class="invoice-footer">
                 <div class="custom-fields">
-                    ${invoiceData.customFields && invoiceData.customFields.length > 0 ? `
+                    ${
+						invoiceData.customFields &&
+						invoiceData.customFields.length > 0
+							? `
                         <h4>Additional Information</h4>
-                        ${invoiceData.customFields.map(fieldValue => {
-                          if (!fieldValue.value) return '';
-                          let fieldLabel = fieldValue.label;
-                          if (!fieldLabel && userSettings?.custom_fields) {
-                            const fieldDefinition = userSettings.custom_fields.find(cf => cf.id === fieldValue.fieldId);
-                            fieldLabel = fieldDefinition?.label;
-                          }
-                          if (!fieldLabel) return '';
-                          return `
+                        ${invoiceData.customFields
+							.map((fieldValue) => {
+								if (!fieldValue.value) return ''
+								let fieldLabel = fieldValue.label
+								if (
+									!fieldLabel &&
+									userSettings?.custom_fields
+								) {
+									const fieldDefinition =
+										userSettings.custom_fields.find(
+											(cf) =>
+												cf.id === fieldValue.fieldId,
+										)
+									fieldLabel = fieldDefinition?.label
+								}
+								if (!fieldLabel) return ''
+								return `
                             <div class="custom-field">
                                 <span class="field-label">${fieldLabel}:</span>
                                 <span class="field-value">${fieldValue.value}</span>
                             </div>
-                          `;
-                        }).join('')}
-                    ` : ''}
+                          `
+							})
+							.join('')}
+                    `
+							: ''
+					}
                 </div>
                 
                 <div class="totals">
@@ -899,12 +865,16 @@ export const InvoicePreview = ({
                         <span>Subtotal:</span>
                         <span>${userSettings ? formatCurrency(calculateSubtotal(), userSettings.default_currency) : `$${calculateSubtotal().toFixed(2)}`}</span>
                     </div>
-                    ${invoiceData.taxRate && invoiceData.taxRate > 0 ? `
+                    ${
+						invoiceData.taxRate && invoiceData.taxRate > 0
+							? `
                         <div class="total-row">
                             <span>Tax (${invoiceData.taxRate}%):</span>
                             <span>${userSettings ? formatCurrency(calculateTax(), userSettings.default_currency) : `$${calculateTax().toFixed(2)}`}</span>
                         </div>
-                    ` : ''}
+                    `
+							: ''
+					}
                     <div class="total-row final">
                         <span>Total:</span>
                         <span>${userSettings ? formatCurrency(calculateTotal(), userSettings.default_currency) : `$${calculateTotal().toFixed(2)}`}</span>
@@ -914,747 +884,851 @@ export const InvoicePreview = ({
         </div>
     </div>
 </body>
-</html>`;
-  };
+</html>`
+	}
 
-  const calculateSubtotal = () => {
-    return invoiceData.items.reduce(
-      (sum, item) => sum + item.quantity * item.price,
-      0
-    );
-  };
+	const calculateSubtotal = () => {
+		return invoiceData.items.reduce(
+			(sum, item) => sum + item.quantity * item.price,
+			0,
+		)
+	}
 
-  const calculateTax = () => {
-    const subtotal = calculateSubtotal();
-    return subtotal * ((invoiceData.taxRate || 0) / 100);
-  };
+	const calculateTax = () => {
+		const subtotal = calculateSubtotal()
+		return subtotal * ((invoiceData.taxRate || 0) / 100)
+	}
 
-  const calculateTotal = () => {
-    return calculateSubtotal() + calculateTax();
-  };
+	const calculateTotal = () => {
+		return calculateSubtotal() + calculateTax()
+	}
 
-  // Use theme styles directly from invoiceData
-  const themeStyles = invoiceData.theme.styles;
+	// Use theme styles directly from invoiceData
+	const themeStyles = invoiceData.theme.styles
 
-  // Component for the full invoice content
-  const FullInvoiceContent = () => (
-    <Card
-      ref={pdfRef}
-      className="p-4 sm:p-6 lg:p-8 shadow-lg bg-white w-full max-w-4xl mx-auto"
-      style={{
-        minHeight: "297mm",
-        aspectRatio: "210/297",
-        maxWidth: "210mm",
-      }}
-    >
-      {/* Header */}
-      <div
-        className={`invoice-header-${invoiceData.theme.id} -m-4 sm:-m-6 lg:-m-8 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 lg:py-6 mb-4 sm:mb-5 lg:mb-6`}
-      >
-        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-          {/* User/Company Information */}
-          <div className="text-left flex-1">
-            <div className="space-y-1">
-              <p className="font-bold text-lg sm:text-xl lg:text-2xl">
-                {userSettings?.company_name || "Your Company Name"}
-              </p>
-              {userSettings?.company_email && (
-                <p className="text-sm">{userSettings.company_email}</p>
-              )}
-              {userSettings?.company_phone && (
-                <p className="text-sm">{userSettings.company_phone}</p>
-              )}
-              {userSettings?.company_address && (
-                <p className="text-sm whitespace-pre-line">
-                  {userSettings.company_address}
-                </p>
-              )}
-              {userSettings?.company_website && (
-                <p className="text-sm">{userSettings.company_website}</p>
-              )}
-            </div>
-          </div>
+	// Component for the full invoice content
+	const FullInvoiceContent = () => (
+		<Card
+			className="p-4 sm:p-6 lg:p-8 shadow-lg bg-white w-full max-w-4xl mx-auto"
+			ref={pdfRef}
+			style={{
+				minHeight: '297mm',
+				aspectRatio: '210/297',
+				maxWidth: '210mm',
+			}}
+		>
+			{/* Header */}
+			<div
+				className={`invoice-header-${invoiceData.theme.id} -m-4 sm:-m-6 lg:-m-8 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 lg:py-6 mb-4 sm:mb-5 lg:mb-6`}
+			>
+				<div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+					{/* User/Company Information */}
+					<div className="text-left flex-1">
+						<div className="space-y-1">
+							<p className="font-bold text-lg sm:text-xl lg:text-2xl">
+								{userSettings?.company_name ||
+									'Your Company Name'}
+							</p>
+							{userSettings?.company_email && (
+								<p className="text-sm">
+									{userSettings.company_email}
+								</p>
+							)}
+							{userSettings?.company_phone && (
+								<p className="text-sm">
+									{userSettings.company_phone}
+								</p>
+							)}
+							{userSettings?.company_address && (
+								<p className="text-sm whitespace-pre-line">
+									{userSettings.company_address}
+								</p>
+							)}
+							{userSettings?.company_website && (
+								<p className="text-sm">
+									{userSettings.company_website}
+								</p>
+							)}
+						</div>
+					</div>
 
-          {/* Logo & Invoice Number */}
-          <div className="text-right text-white/90 flex-shrink-0">
-            <div className="space-y-2 sm:space-y-4 flex flex-col items-end">
-              {userSettings?.company_logo && (
-                <div className="flex-shrink-0">
-                  <img
-                    src={userSettings.company_logo}
-                    alt="Company Logo"
-                    className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 object-contain"
-                  />
-                </div>
-              )}
-              <div className="text-right">
-                <p className="text-xs sm:text-sm text-white/70">
-                  Invoice Number
-                </p>
-                <p className="font-mono font-semibold text-base sm:text-lg">
-                  {invoiceData.invoiceNumber}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+					{/* Logo & Invoice Number */}
+					<div className="text-right text-white/90 flex-shrink-0">
+						<div className="space-y-2 sm:space-y-4 flex flex-col items-end">
+							{userSettings?.company_logo && (
+								<div className="flex-shrink-0">
+									<img
+										alt="Company Logo"
+										className="w-12 h-12 sm:w-14 sm:h-14 lg:w-16 lg:h-16 object-contain"
+										src={userSettings.company_logo}
+									/>
+								</div>
+							)}
+							<div className="text-right">
+								<p className="text-xs sm:text-sm text-white/70">
+									Invoice Number
+								</p>
+								<p className="font-mono font-semibold text-base sm:text-lg">
+									{invoiceData.invoiceNumber}
+								</p>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
 
-      {/* Invoice Details */}
-      <div className="grid sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 mb-4 sm:mb-6 lg:mb-8">
-        <div>
-          <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">
-            Bill To
-          </h3>
-          <div className="space-y-1">
-            <p className="font-semibold text-base sm:text-lg">
-              {invoiceData.client.name}
-            </p>
-            {invoiceData.client.email && (
-              <p className="text-muted-foreground">
-                {invoiceData.client.email}
-              </p>
-            )}
-            {invoiceData.client.phone && (
-              <p className="text-muted-foreground">
-                {invoiceData.client.phone}
-              </p>
-            )}
-            <p className="text-muted-foreground whitespace-pre-line">
-              {invoiceData.client.address}
-            </p>
-          </div>
-        </div>
+			{/* Invoice Details */}
+			<div className="grid sm:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 mb-4 sm:mb-6 lg:mb-8">
+				<div>
+					<h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">
+						Bill To
+					</h3>
+					<div className="space-y-1">
+						<p className="font-semibold text-base sm:text-lg">
+							{invoiceData.client.name}
+						</p>
+						{invoiceData.client.email && (
+							<p className="text-muted-foreground">
+								{invoiceData.client.email}
+							</p>
+						)}
+						{invoiceData.client.phone && (
+							<p className="text-muted-foreground">
+								{invoiceData.client.phone}
+							</p>
+						)}
+						<p className="text-muted-foreground whitespace-pre-line">
+							{invoiceData.client.address}
+						</p>
+					</div>
+				</div>
 
-        <div className="space-y-4">
-          <div>
-            <p className="text-sm text-muted-foreground">Invoice Date</p>
-            <p className="font-semibold">
-              {userSettings
-                ? formatDate(invoiceData.date, userSettings.date_format)
-                : new Date(invoiceData.date).toLocaleDateString()}
-            </p>
-          </div>
-          <div>
-            <p className="text-sm text-muted-foreground">Due Date</p>
-            <p className="font-semibold">
-              {userSettings
-                ? formatDate(invoiceData.dueDate, userSettings.date_format)
-                : new Date(invoiceData.dueDate).toLocaleDateString()}
-            </p>
-          </div>
-        </div>
-      </div>
+				<div className="space-y-4">
+					<div>
+						<p className="text-sm text-muted-foreground">
+							Invoice Date
+						</p>
+						<p className="font-semibold">
+							{userSettings
+								? formatDate(
+										invoiceData.date,
+										userSettings.date_format,
+									)
+								: new Date(
+										invoiceData.date,
+									).toLocaleDateString()}
+						</p>
+					</div>
+					<div>
+						<p className="text-sm text-muted-foreground">
+							Due Date
+						</p>
+						<p className="font-semibold">
+							{userSettings
+								? formatDate(
+										invoiceData.dueDate,
+										userSettings.date_format,
+									)
+								: new Date(
+										invoiceData.dueDate,
+									).toLocaleDateString()}
+						</p>
+					</div>
+				</div>
+			</div>
 
-      <Separator className="my-2" />
+			<Separator className="my-2" />
 
-      {/* Items Table */}
-      <div className="">
-        <div className="overflow-x-auto rounded-sm border">
-          <table className="w-full min-w-[500px]">
-            <thead>
-              <tr className={`invoice-table-${invoiceData.theme.id}`}>
-                <th className="text-left p-2 sm:p-3 font-semibold text-white text-sm sm:text-base">
-                  Description
-                </th>
-                <th className="text-center p-2 sm:p-3 font-semibold w-16 sm:w-20 text-white text-sm sm:text-base">
-                  Qty
-                </th>
-                <th className="text-right p-2 sm:p-3 font-semibold w-20 sm:w-24 text-white text-sm sm:text-base">
-                  Price
-                </th>
-                <th className="text-right p-2 sm:p-3 font-semibold w-20 sm:w-24 text-white text-sm sm:text-base">
-                  Total
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoiceData.items.map((item, index) => (
-                <tr
-                  key={item.id}
-                  className={`invoice-item-row-${invoiceData.theme.id} ${
-                    index % 2 === 0 ? "bg-muted/60" : ""
-                  }`}
-                >
-                  <td className="px-2 sm:px-3 py-2 sm:py-2.5 border-b">
-                    <p className="whitespace-pre-line text-sm sm:text-base">
-                      {item.description}
-                    </p>
-                  </td>
-                  <td className="px-2 sm:px-3 py-2 sm:py-2.5 border-b text-center text-sm sm:text-base">
-                    {userSettings
-                      ? formatNumber(item.quantity, userSettings.number_format)
-                      : item.quantity}
-                  </td>
-                  <td className="px-2 sm:px-3 py-2 sm:py-2.5 border-b text-right text-sm sm:text-base">
-                    {userSettings
-                      ? formatCurrency(
-                          item.price,
-                          userSettings.default_currency
-                        )
-                      : `$${item.price.toFixed(2)}`}
-                  </td>
-                  <td className="px-2 sm:px-3 py-2 sm:py-2.5 border-b text-right font-semibold text-sm sm:text-base">
-                    {userSettings
-                      ? formatCurrency(
-                          item.quantity * item.price,
-                          userSettings.default_currency
-                        )
-                      : `$${(item.quantity * item.price).toFixed(2)}`}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+			{/* Items Table */}
+			<div className="">
+				<div className="overflow-x-auto rounded-sm border">
+					<table className="w-full min-w-[500px]">
+						<thead>
+							<tr
+								className={`invoice-table-${invoiceData.theme.id}`}
+							>
+								<th className="text-left p-2 sm:p-3 font-semibold text-white text-sm sm:text-base">
+									Description
+								</th>
+								<th className="text-center p-2 sm:p-3 font-semibold w-16 sm:w-20 text-white text-sm sm:text-base">
+									Qty
+								</th>
+								<th className="text-right p-2 sm:p-3 font-semibold w-20 sm:w-24 text-white text-sm sm:text-base">
+									Price
+								</th>
+								<th className="text-right p-2 sm:p-3 font-semibold w-20 sm:w-24 text-white text-sm sm:text-base">
+									Total
+								</th>
+							</tr>
+						</thead>
+						<tbody>
+							{invoiceData.items.map((item, index) => (
+								<tr
+									className={`invoice-item-row-${invoiceData.theme.id} ${
+										index % 2 === 0 ? 'bg-muted/60' : ''
+									}`}
+									key={item.id}
+								>
+									<td className="px-2 sm:px-3 py-2 sm:py-2.5 border-b">
+										<p className="whitespace-pre-line text-sm sm:text-base">
+											{item.description}
+										</p>
+									</td>
+									<td className="px-2 sm:px-3 py-2 sm:py-2.5 border-b text-center text-sm sm:text-base">
+										{userSettings
+											? formatNumber(
+													item.quantity,
+													userSettings.number_format,
+												)
+											: item.quantity}
+									</td>
+									<td className="px-2 sm:px-3 py-2 sm:py-2.5 border-b text-right text-sm sm:text-base">
+										{userSettings
+											? formatCurrency(
+													item.price,
+													userSettings.default_currency,
+												)
+											: `$${item.price.toFixed(2)}`}
+									</td>
+									<td className="px-2 sm:px-3 py-2 sm:py-2.5 border-b text-right font-semibold text-sm sm:text-base">
+										{userSettings
+											? formatCurrency(
+													item.quantity * item.price,
+													userSettings.default_currency,
+												)
+											: `$${(item.quantity * item.price).toFixed(2)}`}
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			</div>
 
-      {/* Custom Fields and Totals */}
-      <div className="flex flex-col lg:flex-row justify-between gap-4 lg:gap-8 mt-4 sm:mt-6 lg:mt-8">
-        {/* Custom Fields - Left Side */}
-        <div className="w-full lg:w-64 space-y-3">
-          {invoiceData.customFields && invoiceData.customFields.length > 0 && (
-            <>
-              <h4 className="font-semibold text-md text-muted-foreground uppercase tracking-wide">
-                Additional Information
-              </h4>
-              <div className="space-y-2">
-                {invoiceData.customFields.map((fieldValue) => {
-                  if (!fieldValue.value) return null;
+			{/* Custom Fields and Totals */}
+			<div className="flex flex-col lg:flex-row justify-between gap-4 lg:gap-8 mt-4 sm:mt-6 lg:mt-8">
+				{/* Custom Fields - Left Side */}
+				<div className="w-full lg:w-64 space-y-3">
+					{invoiceData.customFields &&
+						invoiceData.customFields.length > 0 && (
+							<>
+								<h4 className="font-semibold text-md text-muted-foreground uppercase tracking-wide">
+									Additional Information
+								</h4>
+								<div className="space-y-2">
+									{invoiceData.customFields.map(
+										(fieldValue) => {
+											if (!fieldValue.value) return null
 
-                  // First try to find in user settings (pre-configured fields)
-                  let fieldLabel = fieldValue.label;
-                  if (!fieldLabel && userSettings?.custom_fields) {
-                    const fieldDefinition = userSettings.custom_fields.find(
-                      (cf) => cf.id === fieldValue.fieldId
-                    );
-                    fieldLabel = fieldDefinition?.label;
-                  }
+											// First try to find in user settings (pre-configured fields)
+											let fieldLabel = fieldValue.label
+											if (
+												!fieldLabel &&
+												userSettings?.custom_fields
+											) {
+												const fieldDefinition =
+													userSettings.custom_fields.find(
+														(cf) =>
+															cf.id ===
+															fieldValue.fieldId,
+													)
+												fieldLabel =
+													fieldDefinition?.label
+											}
 
-                  if (!fieldLabel) return null;
+											if (!fieldLabel) return null
 
-                  return (
-                    <div
-                      key={fieldValue.fieldId}
-                      className="flex flex-row items-center gap-2"
-                    >
-                      <span className="text-sm text-muted-foreground font-semibold">
-                        {fieldLabel}:
-                      </span>
-                      <span className="text-md text-black font-semibold">
-                        {fieldValue.value}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </>
-          )}
-        </div>
+											return (
+												<div
+													className="flex flex-row items-center gap-2"
+													key={fieldValue.fieldId}
+												>
+													<span className="text-sm text-muted-foreground font-semibold">
+														{fieldLabel}:
+													</span>
+													<span className="text-md text-black font-semibold">
+														{fieldValue.value}
+													</span>
+												</div>
+											)
+										},
+									)}
+								</div>
+							</>
+						)}
+				</div>
 
-        {/* Totals - Right Side */}
-        <div className="w-full lg:w-64 space-y-2 sm:space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-muted-foreground">Subtotal:</span>
-            <span className="font-semibold">
-              {userSettings
-                ? formatCurrency(
-                    calculateSubtotal(),
-                    userSettings.default_currency
-                  )
-                : `$${calculateSubtotal().toFixed(2)}`}
-            </span>
-          </div>
-          {invoiceData.taxRate && invoiceData.taxRate > 0 && (
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">
-                Tax ({invoiceData.taxRate}%):
-              </span>
-              <span className="font-semibold">
-                {userSettings
-                  ? formatCurrency(
-                      calculateTax(),
-                      userSettings.default_currency
-                    )
-                  : `$${calculateTax().toFixed(2)}`}
-              </span>
-            </div>
-          )}
-          <Separator />
-          <div
-            className={`invoice-total-${invoiceData.theme.id} flex justify-between items-center py-3 px-4`}
-          >
-            <span className="font-bold text-lg">Total:</span>
-            <span className="font-bold text-xl">
-              {userSettings
-                ? formatCurrency(
-                    calculateTotal(),
-                    userSettings.default_currency
-                  )
-                : `$${calculateTotal().toFixed(2)}`}
-            </span>
-          </div>
-        </div>
-      </div>
+				{/* Totals - Right Side */}
+				<div className="w-full lg:w-64 space-y-2 sm:space-y-3">
+					<div className="flex justify-between items-center">
+						<span className="text-muted-foreground">Subtotal:</span>
+						<span className="font-semibold">
+							{userSettings
+								? formatCurrency(
+										calculateSubtotal(),
+										userSettings.default_currency,
+									)
+								: `$${calculateSubtotal().toFixed(2)}`}
+						</span>
+					</div>
+					{invoiceData.taxRate && invoiceData.taxRate > 0 && (
+						<div className="flex justify-between items-center">
+							<span className="text-muted-foreground">
+								Tax ({invoiceData.taxRate}%):
+							</span>
+							<span className="font-semibold">
+								{userSettings
+									? formatCurrency(
+											calculateTax(),
+											userSettings.default_currency,
+										)
+									: `$${calculateTax().toFixed(2)}`}
+							</span>
+						</div>
+					)}
+					<Separator />
+					<div
+						className={`invoice-total-${invoiceData.theme.id} flex justify-between items-center py-3 px-4`}
+					>
+						<span className="font-bold text-lg">Total:</span>
+						<span className="font-bold text-xl">
+							{userSettings
+								? formatCurrency(
+										calculateTotal(),
+										userSettings.default_currency,
+									)
+								: `$${calculateTotal().toFixed(2)}`}
+						</span>
+					</div>
+				</div>
+			</div>
 
-      {/* Footer */}
-      {/* <div className="mt-12 pt-8 border-t text-center text-sm text-muted-foreground">
+			{/* Footer */}
+			{/* <div className="mt-12 pt-8 border-t text-center text-sm text-muted-foreground">
         <p>Thank you for your business!</p>
         <p className="mt-2">
           This invoice was generated using Invoice Generator
         </p>
       </div> */}
-    </Card>
-  );
+		</Card>
+	)
 
-  return (
-    <div className="space-y-4 overflow-y-scroll md:overflow-y-auto h-full md:h-auto">
-      <div className="flex items-center justify-center gap-2 mb-2">
-        <Eye className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
-        <h2 className="text-lg sm:text-xl lg:text-2xl font-bold">
-          Invoice Preview
-        </h2>
-      </div>
+	return (
+		<div className="space-y-4 overflow-y-scroll md:overflow-y-auto h-full md:h-auto">
+			<div className="flex items-center justify-center gap-2 mb-2">
+				<Eye className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
+				<h2 className="text-lg sm:text-xl lg:text-2xl font-bold">
+					Invoice Preview
+				</h2>
+			</div>
 
-      <div className="flex justify-center gap-2 flex-wrap text-xs sm:text-sm">
-        <Button
-          variant="outline"
-          className="hidden sm:flex items-center gap-2 justify-center"
-          size="sm"
-          onClick={printInvoiceNoDialog}
-          disabled={isSaving}
-        >
-          <Printer className="w-4 h-4" />
-          Print
-          {isSaving && (hasBeenSaved ? " (Printing...)" : " (Saving...)")}
-        </Button>
-        <Button
-          className="flex items-center gap-2 justify-center text-xs sm:text-sm"
-          onClick={downloadedInvoiceNoDialog}
-          disabled={isSaving}
-          size="sm"
-        >
-          <Download className="w-4 h-4" />
-          Download PDF
-          {isSaving && (hasBeenSaved ? " (Downloading...)" : " (Saving...)")}
-        </Button>
-        <Button
-          variant="outline"
-          className="flex items-center gap-2 justify-center text-xs sm:text-sm"
-          onClick={exportInvoiceAsHTML}
-          disabled={isSaving}
-          size="sm"
-        >
-          <Mail className="w-4 h-4" />
-          Export HTML
-          {isSaving && (hasBeenSaved ? " (Exporting...)" : " (Saving...)")}
-        </Button>
-      </div>
-      {/* A4 Paper Preview */}
-      <div className="flex justify-center bg-gray-100 rounded-lg h-[70%] w-full max-w-52 md:max-w-56 lg:max-w-60 mx-auto relative overflow-hidden aspect-[3/4]">
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 overflow-hidden">
-          <div
-            className="bg-white shadow-2xl border border-gray-200 scale-[0.2] sm:scale-[0.205] md:scale-[0.21] lg:scale-[0.25]"
-            style={{
-              width: "210mm",
-              aspectRatio: "210/297",
-              boxShadow:
-                "0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.05)",
-              borderRadius: "2px",
-            }}
-          >
-            <div className="p-8">
-              <div className="space-y-8">
-                {/* Header */}
-                <div
-                  className={`invoice-header-${invoiceData.theme.id} -m-8 px-8 py-6 mb-6`}
-                >
-                  <div className="flex justify-between items-start">
-                    {/* User/Company Information */}
-                    <div className="text-left">
-                      <div className="space-y-1">
-                        <p className="font-bold text-2xl">
-                          {userSettings?.company_name || "Your Company Name"}
-                        </p>
-                        {userSettings?.company_email && (
-                          <p className="text-sm">
-                            {userSettings.company_email}
-                          </p>
-                        )}
-                        {userSettings?.company_phone && (
-                          <p className="text-sm">
-                            {userSettings.company_phone}
-                          </p>
-                        )}
-                        {userSettings?.company_address && (
-                          <p className="text-sm whitespace-pre-line">
-                            {userSettings.company_address}
-                          </p>
-                        )}
-                        {userSettings?.company_website && (
-                          <p className="text-sm">
-                            {userSettings.company_website}
-                          </p>
-                        )}
-                      </div>
-                    </div>
+			<div className="flex justify-center gap-2 flex-wrap text-xs sm:text-sm">
+				<Button
+					className="hidden sm:flex items-center gap-2 justify-center"
+					disabled={isSaving}
+					onClick={printInvoiceNoDialog}
+					size="sm"
+					variant="outline"
+				>
+					<Printer className="w-4 h-4" />
+					Print
+					{isSaving && (isSaved ? ' (Printing...)' : ' (Saving...)')}
+				</Button>
+				<Button
+					className="flex items-center gap-2 justify-center text-xs sm:text-sm"
+					disabled={isSaving}
+					onClick={downloadedInvoiceNoDialog}
+					size="sm"
+				>
+					<Download className="w-4 h-4" />
+					Download PDF
+					{isSaving &&
+						(isSaved ? ' (Downloading...)' : ' (Saving...)')}
+				</Button>
+				<Button
+					className="flex items-center gap-2 justify-center text-xs sm:text-sm"
+					disabled={isSaving}
+					onClick={exportInvoiceAsHTML}
+					size="sm"
+					variant="outline"
+				>
+					<Mail className="w-4 h-4" />
+					Export HTML
+					{isSaving && (isSaved ? ' (Exporting...)' : ' (Saving...)')}
+				</Button>
+			</div>
+			{/* A4 Paper Preview */}
+			<div className="flex justify-center bg-gray-100 rounded-lg h-[70%] w-full max-w-52 md:max-w-56 lg:max-w-60 mx-auto relative overflow-hidden aspect-[3/4]">
+				<div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 overflow-hidden">
+					<div
+						className="bg-white shadow-2xl border border-gray-200 scale-[0.2] sm:scale-[0.205] md:scale-[0.21] lg:scale-[0.25]"
+						style={{
+							width: '210mm',
+							aspectRatio: '210/297',
+							boxShadow:
+								'0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05), 0 0 0 1px rgba(0, 0, 0, 0.05)',
+							borderRadius: '2px',
+						}}
+					>
+						<div className="p-8">
+							<div className="space-y-8">
+								{/* Header */}
+								<div
+									className={`invoice-header-${invoiceData.theme.id} -m-8 px-8 py-6 mb-6`}
+								>
+									<div className="flex justify-between items-start">
+										{/* User/Company Information */}
+										<div className="text-left">
+											<div className="space-y-1">
+												<p className="font-bold text-2xl">
+													{userSettings?.company_name ||
+														'Your Company Name'}
+												</p>
+												{userSettings?.company_email && (
+													<p className="text-sm">
+														{
+															userSettings.company_email
+														}
+													</p>
+												)}
+												{userSettings?.company_phone && (
+													<p className="text-sm">
+														{
+															userSettings.company_phone
+														}
+													</p>
+												)}
+												{userSettings?.company_address && (
+													<p className="text-sm whitespace-pre-line">
+														{
+															userSettings.company_address
+														}
+													</p>
+												)}
+												{userSettings?.company_website && (
+													<p className="text-sm">
+														{
+															userSettings.company_website
+														}
+													</p>
+												)}
+											</div>
+										</div>
 
-                    {/* Logo & Invoice Number */}
-                    <div className="text-right text-white/90">
-                      <div className="space-y-4 flex flex-col items-end">
-                        {userSettings?.company_logo && (
-                          <div className="flex-shrink-0">
-                            <img
-                              src={userSettings.company_logo}
-                              alt="Company Logo"
-                              className="w-16 h-16 object-contain"
-                            />
-                          </div>
-                        )}
-                        <div className="text-right">
-                          <p className="text-sm text-white/60">
-                            Invoice Number
-                          </p>
-                          <p className="font-mono font-semibold text-lg">
-                            {invoiceData.invoiceNumber}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+										{/* Logo & Invoice Number */}
+										<div className="text-right text-white/90">
+											<div className="space-y-4 flex flex-col items-end">
+												{userSettings?.company_logo && (
+													<div className="flex-shrink-0">
+														<img
+															alt="Company Logo"
+															className="w-16 h-16 object-contain"
+															src={
+																userSettings.company_logo
+															}
+														/>
+													</div>
+												)}
+												<div className="text-right">
+													<p className="text-sm text-white/60">
+														Invoice Number
+													</p>
+													<p className="font-mono font-semibold text-lg">
+														{
+															invoiceData.invoiceNumber
+														}
+													</p>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
 
-                {/* Invoice Details */}
-                <div className="grid md:grid-cols-2 gap-8 mb-8">
-                  <div>
-                    <h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">
-                      Bill To
-                    </h3>
-                    <div className="space-y-1">
-                      <p className="font-semibold text-lg">
-                        {invoiceData.client.name}
-                      </p>
-                      {invoiceData.client.email && (
-                        <p className="text-muted-foreground">
-                          {invoiceData.client.email}
-                        </p>
-                      )}
-                      {invoiceData.client.phone && (
-                        <p className="text-muted-foreground">
-                          {invoiceData.client.phone}
-                        </p>
-                      )}
-                      <p className="text-muted-foreground whitespace-pre-line">
-                        {invoiceData.client.address}
-                      </p>
-                    </div>
-                  </div>
+								{/* Invoice Details */}
+								<div className="grid md:grid-cols-2 gap-8 mb-8">
+									<div>
+										<h3 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide mb-3">
+											Bill To
+										</h3>
+										<div className="space-y-1">
+											<p className="font-semibold text-lg">
+												{invoiceData.client.name}
+											</p>
+											{invoiceData.client.email && (
+												<p className="text-muted-foreground">
+													{invoiceData.client.email}
+												</p>
+											)}
+											{invoiceData.client.phone && (
+												<p className="text-muted-foreground">
+													{invoiceData.client.phone}
+												</p>
+											)}
+											<p className="text-muted-foreground whitespace-pre-line">
+												{invoiceData.client.address}
+											</p>
+										</div>
+									</div>
 
-                  <div className="space-y-4">
-                    <div>
-                      <p className="text-sm text-muted-foreground">
-                        Invoice Date
-                      </p>
-                      <p className="font-semibold">
-                        {userSettings
-                          ? formatDate(
-                              invoiceData.date,
-                              userSettings.date_format
-                            )
-                          : new Date(invoiceData.date).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Due Date</p>
-                      <p className="font-semibold">
-                        {userSettings
-                          ? formatDate(
-                              invoiceData.dueDate,
-                              userSettings.date_format
-                            )
-                          : new Date(invoiceData.dueDate).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                </div>
+									<div className="space-y-4">
+										<div>
+											<p className="text-sm text-muted-foreground">
+												Invoice Date
+											</p>
+											<p className="font-semibold">
+												{userSettings
+													? formatDate(
+															invoiceData.date,
+															userSettings.date_format,
+														)
+													: new Date(
+															invoiceData.date,
+														).toLocaleDateString()}
+											</p>
+										</div>
+										<div>
+											<p className="text-sm text-muted-foreground">
+												Due Date
+											</p>
+											<p className="font-semibold">
+												{userSettings
+													? formatDate(
+															invoiceData.dueDate,
+															userSettings.date_format,
+														)
+													: new Date(
+															invoiceData.dueDate,
+														).toLocaleDateString()}
+											</p>
+										</div>
+									</div>
+								</div>
 
-                <Separator className="my-2" />
+								<Separator className="my-2" />
 
-                {/* Items Table */}
-                <div className="">
-                  <div className="overflow-x-auto rounded-sm border">
-                    <table className="w-full">
-                      <thead>
-                        <tr className={`invoice-table-${invoiceData.theme.id}`}>
-                          <th className="text-left p-3 font-semibold text-white">
-                            Description
-                          </th>
-                          <th className="text-center p-3 font-semibold w-20 text-white">
-                            Qty
-                          </th>
-                          <th className="text-right p-3 font-semibold w-24 text-white">
-                            Price
-                          </th>
-                          <th className="text-right p-3 font-semibold w-24 text-white">
-                            Total
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {invoiceData.items.map((item, index) => (
-                          <tr
-                            key={item.id}
-                            className={`invoice-item-row-${
-                              invoiceData.theme.id
-                            } ${index % 2 === 0 ? "bg-muted/60" : ""}`}
-                          >
-                            <td className="px-3 py-2.5 border-b">
-                              <p className="whitespace-pre-line">
-                                {item.description}
-                              </p>
-                            </td>
-                            <td className="px-3 py-2.5 border-b text-center">
-                              {userSettings
-                                ? formatNumber(
-                                    item.quantity,
-                                    userSettings.number_format
-                                  )
-                                : item.quantity}
-                            </td>
-                            <td className="px-3 py-2.5 border-b text-right">
-                              {userSettings
-                                ? formatCurrency(
-                                    item.price,
-                                    userSettings.default_currency
-                                  )
-                                : `$${item.price.toFixed(2)}`}
-                            </td>
-                            <td className="px-3 py-2.5 border-b text-right font-semibold">
-                              {userSettings
-                                ? formatCurrency(
-                                    item.quantity * item.price,
-                                    userSettings.default_currency
-                                  )
-                                : `$${(item.quantity * item.price).toFixed(2)}`}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
+								{/* Items Table */}
+								<div className="">
+									<div className="overflow-x-auto rounded-sm border">
+										<table className="w-full">
+											<thead>
+												<tr
+													className={`invoice-table-${invoiceData.theme.id}`}
+												>
+													<th className="text-left p-3 font-semibold text-white">
+														Description
+													</th>
+													<th className="text-center p-3 font-semibold w-20 text-white">
+														Qty
+													</th>
+													<th className="text-right p-3 font-semibold w-24 text-white">
+														Price
+													</th>
+													<th className="text-right p-3 font-semibold w-24 text-white">
+														Total
+													</th>
+												</tr>
+											</thead>
+											<tbody>
+												{invoiceData.items.map(
+													(item, index) => (
+														<tr
+															className={`invoice-item-row-${
+																invoiceData
+																	.theme.id
+															} ${index % 2 === 0 ? 'bg-muted/60' : ''}`}
+															key={item.id}
+														>
+															<td className="px-3 py-2.5 border-b">
+																<p className="whitespace-pre-line">
+																	{
+																		item.description
+																	}
+																</p>
+															</td>
+															<td className="px-3 py-2.5 border-b text-center">
+																{userSettings
+																	? formatNumber(
+																			item.quantity,
+																			userSettings.number_format,
+																		)
+																	: item.quantity}
+															</td>
+															<td className="px-3 py-2.5 border-b text-right">
+																{userSettings
+																	? formatCurrency(
+																			item.price,
+																			userSettings.default_currency,
+																		)
+																	: `$${item.price.toFixed(2)}`}
+															</td>
+															<td className="px-3 py-2.5 border-b text-right font-semibold">
+																{userSettings
+																	? formatCurrency(
+																			item.quantity *
+																				item.price,
+																			userSettings.default_currency,
+																		)
+																	: `$${(item.quantity * item.price).toFixed(2)}`}
+															</td>
+														</tr>
+													),
+												)}
+											</tbody>
+										</table>
+									</div>
+								</div>
 
-                {/* Custom Fields and Totals */}
-                <div className="flex justify-between mt-8">
-                  {/* Custom Fields - Left Side */}
-                  <div className="w-64 space-y-3">
-                    {invoiceData.customFields &&
-                      invoiceData.customFields.length > 0 && (
-                        <>
-                          <h4 className="font-semibold text-md text-muted-foreground uppercase tracking-wide">
-                            Additional Information
-                          </h4>
-                          <div className="space-y-2">
-                            {invoiceData.customFields.map((fieldValue) => {
-                              if (!fieldValue.value) return null;
+								{/* Custom Fields and Totals */}
+								<div className="flex justify-between mt-8">
+									{/* Custom Fields - Left Side */}
+									<div className="w-64 space-y-3">
+										{invoiceData.customFields &&
+											invoiceData.customFields.length >
+												0 && (
+												<>
+													<h4 className="font-semibold text-md text-muted-foreground uppercase tracking-wide">
+														Additional Information
+													</h4>
+													<div className="space-y-2">
+														{invoiceData.customFields.map(
+															(fieldValue) => {
+																if (
+																	!fieldValue.value
+																)
+																	return null
 
-                              // First try to find in user settings (pre-configured fields)
-                              let fieldLabel = fieldValue.label;
-                              if (!fieldLabel && userSettings?.custom_fields) {
-                                const fieldDefinition =
-                                  userSettings.custom_fields.find(
-                                    (cf) => cf.id === fieldValue.fieldId
-                                  );
-                                fieldLabel = fieldDefinition?.label;
-                              }
+																// First try to find in user settings (pre-configured fields)
+																let fieldLabel =
+																	fieldValue.label
+																if (
+																	!fieldLabel &&
+																	userSettings?.custom_fields
+																) {
+																	const fieldDefinition =
+																		userSettings.custom_fields.find(
+																			(
+																				cf,
+																			) =>
+																				cf.id ===
+																				fieldValue.fieldId,
+																		)
+																	fieldLabel =
+																		fieldDefinition?.label
+																}
 
-                              if (!fieldLabel) return null;
+																if (!fieldLabel)
+																	return null
 
-                              return (
-                                <div
-                                  key={fieldValue.fieldId}
-                                  className="flex flex-row items-center gap-2"
-                                >
-                                  <span className="text-sm text-muted-foreground font-semibold">
-                                    {fieldLabel}:
-                                  </span>
-                                  <span className="text-md text-black font-semibold">
-                                    {fieldValue.value}
-                                  </span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </>
-                      )}
-                  </div>
+																return (
+																	<div
+																		className="flex flex-row items-center gap-2"
+																		key={
+																			fieldValue.fieldId
+																		}
+																	>
+																		<span className="text-sm text-muted-foreground font-semibold">
+																			{
+																				fieldLabel
+																			}
+																			:
+																		</span>
+																		<span className="text-md text-black font-semibold">
+																			{
+																				fieldValue.value
+																			}
+																		</span>
+																	</div>
+																)
+															},
+														)}
+													</div>
+												</>
+											)}
+									</div>
 
-                  {/* Totals - Right Side */}
-                  <div className="w-64 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Subtotal:</span>
-                      <span className="font-semibold">
-                        {userSettings
-                          ? formatCurrency(
-                              calculateSubtotal(),
-                              userSettings.default_currency
-                            )
-                          : `$${calculateSubtotal().toFixed(2)}`}
-                      </span>
-                    </div>
-                    {invoiceData.taxRate && invoiceData.taxRate > 0 && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-muted-foreground">
-                          Tax ({invoiceData.taxRate}%):
-                        </span>
-                        <span className="font-semibold">
-                          {userSettings
-                            ? formatCurrency(
-                                calculateTax(),
-                                userSettings.default_currency
-                              )
-                            : `$${calculateTax().toFixed(2)}`}
-                        </span>
-                      </div>
-                    )}
-                    <Separator />
-                    <div
-                      className={`invoice-total-${invoiceData.theme.id} flex justify-between items-center py-3 px-4`}
-                    >
-                      <span className="font-bold text-lg">Total:</span>
-                      <span className="font-bold text-xl">
-                        {userSettings
-                          ? formatCurrency(
-                              calculateTotal(),
-                              userSettings.default_currency
-                            )
-                          : `$${calculateTotal().toFixed(2)}`}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+									{/* Totals - Right Side */}
+									<div className="w-64 space-y-3">
+										<div className="flex justify-between items-center">
+											<span className="text-muted-foreground">
+												Subtotal:
+											</span>
+											<span className="font-semibold">
+												{userSettings
+													? formatCurrency(
+															calculateSubtotal(),
+															userSettings.default_currency,
+														)
+													: `$${calculateSubtotal().toFixed(2)}`}
+											</span>
+										</div>
+										{invoiceData.taxRate &&
+											invoiceData.taxRate > 0 && (
+												<div className="flex justify-between items-center">
+													<span className="text-muted-foreground">
+														Tax (
+														{invoiceData.taxRate}%):
+													</span>
+													<span className="font-semibold">
+														{userSettings
+															? formatCurrency(
+																	calculateTax(),
+																	userSettings.default_currency,
+																)
+															: `$${calculateTax().toFixed(2)}`}
+													</span>
+												</div>
+											)}
+										<Separator />
+										<div
+											className={`invoice-total-${invoiceData.theme.id} flex justify-between items-center py-3 px-4`}
+										>
+											<span className="font-bold text-lg">
+												Total:
+											</span>
+											<span className="font-bold text-xl">
+												{userSettings
+													? formatCurrency(
+															calculateTotal(),
+															userSettings.default_currency,
+														)
+													: `$${calculateTotal().toFixed(2)}`}
+											</span>
+										</div>
+									</div>
+								</div>
 
-                {/* Footer */}
-                {/* <div className="mt-12 pt-8 border-t text-center text-sm text-muted-foreground">
+								{/* Footer */}
+								{/* <div className="mt-12 pt-8 border-t text-center text-sm text-muted-foreground">
                   <p>Thank you for your business!</p>
                   <p className="mt-2">
                     This invoice was generated using Invoice Generator
                   </p>
                 </div> */}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
 
-      {/* Action Buttons */}
-      <div className="hidden lg:flex flex-col sm:flex-row flex-wrap gap-2 justify-center mt-4">
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button
-              variant="outline"
-              className="flex items-center gap-2 w-full sm:w-auto justify-center"
-              onClick={() => setIsDialogOpen(true)}
-              size="sm"
-            >
-              <Maximize2 className="w-4 h-4" />
-              Full Preview
-            </Button>
-          </DialogTrigger>
-          <DialogContent
-            className={`max-w-[95vw] sm:max-w-4xl lg:max-w-5xl max-h-[90dvh] overflow-y-auto px-2 py-6 sm:p-6 z-[100]`}
-          >
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
-                <Eye className="w-4 h-4 sm:w-5 sm:h-5" />
-                Full Invoice Preview
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-2 sm:space-y-4">
-              {/* Action Buttons in Dialog */}
-              <div className="flex justify-center gap-2 flex-wrap w-1/4 md:w-full">
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-2 w-full sm:w-auto justify-center"
-                  size="sm"
-                  onClick={PrintInvoice}
-                  disabled={isSaving}
-                >
-                  <Printer className="w-4 h-4" />
-                  Print
-                  {isSaving &&
-                    (hasBeenSaved ? " (Printing...)" : " (Saving...)")}
-                </Button>
-                <Button
-                  className="flex items-center gap-2 w-full sm:w-auto justify-center"
-                  onClick={DownloadInvoice}
-                  disabled={isSaving}
-                  size="sm"
-                >
-                  <Download className="w-4 h-4" />
-                  Download PDF
-                  {isSaving &&
-                    (hasBeenSaved ? " (Downloading...)" : " (Saving...)")}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex items-center gap-2 w-full sm:w-auto justify-center"
-                  onClick={exportInvoiceAsHTML}
-                  disabled={isSaving}
-                  size="sm"
-                >
-                  <Mail className="w-4 h-4" />
-                  Export HTML
-                  {isSaving &&
-                    (hasBeenSaved ? " (Exporting...)" : " (Saving...)")}
-                </Button>
-              </div>
+			{/* Action Buttons */}
+			<div className="hidden lg:flex flex-col sm:flex-row flex-wrap gap-2 justify-center mt-4">
+				<Dialog onOpenChange={setIsDialogOpen} open={isDialogOpen}>
+					<DialogTrigger asChild>
+						<Button
+							className="flex items-center gap-2 w-full sm:w-auto justify-center"
+							onClick={() => setIsDialogOpen(true)}
+							size="sm"
+							variant="outline"
+						>
+							<Maximize2 className="w-4 h-4" />
+							Full Preview
+						</Button>
+					</DialogTrigger>
+					<DialogContent
+						className={`max-w-[95vw] sm:max-w-4xl lg:max-w-5xl max-h-[90dvh] overflow-y-auto px-2 py-6 sm:p-6 z-[100]`}
+					>
+						<DialogHeader>
+							<DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+								<Eye className="w-4 h-4 sm:w-5 sm:h-5" />
+								Full Invoice Preview
+							</DialogTitle>
+						</DialogHeader>
+						<div className="space-y-2 sm:space-y-4">
+							{/* Action Buttons in Dialog */}
+							<div className="flex justify-center gap-2 flex-wrap w-1/4 md:w-full">
+								<Button
+									className="flex items-center gap-2 w-full sm:w-auto justify-center"
+									disabled={isSaving}
+									onClick={PrintInvoice}
+									size="sm"
+									variant="outline"
+								>
+									<Printer className="w-4 h-4" />
+									Print
+									{isSaving &&
+										(isSaved
+											? ' (Printing...)'
+											: ' (Saving...)')}
+								</Button>
+								<Button
+									className="flex items-center gap-2 w-full sm:w-auto justify-center"
+									disabled={isSaving}
+									onClick={DownloadInvoice}
+									size="sm"
+								>
+									<Download className="w-4 h-4" />
+									Download PDF
+									{isSaving &&
+										(isSaved
+											? ' (Downloading...)'
+											: ' (Saving...)')}
+								</Button>
+								<Button
+									className="flex items-center gap-2 w-full sm:w-auto justify-center"
+									disabled={isSaving}
+									onClick={exportInvoiceAsHTML}
+									size="sm"
+									variant="outline"
+								>
+									<Mail className="w-4 h-4" />
+									Export HTML
+									{isSaving &&
+										(isSaved
+											? ' (Exporting...)'
+											: ' (Saving...)')}
+								</Button>
+							</div>
 
-              {/* Full Invoice Content */}
-              <div className="flex justify-center overflow-x-auto">
-                <div className="min-w-fit">
-                  <FullInvoiceContent />
-                </div>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      </div>
+							{/* Full Invoice Content */}
+							<div className="flex justify-center overflow-x-auto">
+								<div className="min-w-fit">
+									<FullInvoiceContent />
+								</div>
+							</div>
+						</div>
+					</DialogContent>
+				</Dialog>
+			</div>
 
-      {/* HTML Export Dialog */}
-      <Dialog open={isHtmlDialogOpen} onOpenChange={setIsHtmlDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Code className="w-5 h-5" />
-              Invoice HTML Code for Email
-            </DialogTitle>
-          </DialogHeader>
-          <div className="flex-1 flex flex-col gap-4 min-h-0">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
-                Copy this HTML code to embed the invoice in your email or website.
-              </p>
-              <div className="flex gap-2">
-                <Button onClick={copyHtmlToClipboard} size="sm" variant="outline">
-                  <Code className="w-4 h-4 mr-2" />
-                  Copy to Clipboard
-                </Button>
-                <Button onClick={downloadHtmlFile} size="sm">
-                  <Download className="w-4 h-4 mr-2" />
-                  Download HTML
-                </Button>
-              </div>
-            </div>
-            <Textarea
-              value={htmlContent}
-              readOnly
-              className="flex-1 min-h-[400px] font-mono text-xs resize-none"
-              placeholder="HTML code will appear here..."
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
-  );
-};
+			{/* HTML Export Dialog */}
+			<Dialog onOpenChange={setIsHtmlDialogOpen} open={isHtmlDialogOpen}>
+				<DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+					<DialogHeader>
+						<DialogTitle className="flex items-center gap-2">
+							<Code className="w-5 h-5" />
+							Invoice HTML Code for Email
+						</DialogTitle>
+					</DialogHeader>
+					<div className="flex-1 flex flex-col gap-4 min-h-0">
+						<div className="flex items-center justify-between">
+							<p className="text-sm text-muted-foreground">
+								Copy this HTML code to embed the invoice in your
+								email or website.
+							</p>
+							<div className="flex gap-2">
+								<Button
+									onClick={copyHtmlToClipboard}
+									size="sm"
+									variant="outline"
+								>
+									<Code className="w-4 h-4 mr-2" />
+									Copy to Clipboard
+								</Button>
+								<Button onClick={downloadHtmlFile} size="sm">
+									<Download className="w-4 h-4 mr-2" />
+									Download HTML
+								</Button>
+							</div>
+						</div>
+						<Textarea
+							className="flex-1 min-h-[400px] font-mono text-xs resize-none"
+							placeholder="HTML code will appear here..."
+							readOnly
+							value={htmlContent}
+						/>
+					</div>
+				</DialogContent>
+			</Dialog>
+		</div>
+	)
+}
